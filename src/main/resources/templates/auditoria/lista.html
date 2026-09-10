@@ -1,0 +1,9 @@
+<th:block th:fragment="content">
+    <div class="page-header"><h2 class="mb-1">Auditoria</h2><p class="text-muted mb-0">Histórico das ações registradas no sistema.</p></div>
+    <div class="card page-card border-0"><div class="card-body"><div class="table-responsive">
+        <table class="table align-middle mb-0"><thead><tr><th>Data/hora</th><th>Usuário</th><th>Ação</th><th>Entidade</th><th>Descrição</th><th>IP</th></tr></thead>
+            <tbody><tr th:each="registro : ${registros}"><td th:text="${registro.dataHora}">-</td><td th:text="${registro.usuario != null ? registro.usuario.username : '-'}">-</td><td th:text="${registro.acao}">-</td><td th:text="${registro.entidade + (registro.entidadeId != null ? ' #' + registro.entidadeId : '')}">-</td><td th:text="${registro.descricao}">-</td><td th:text="${registro.enderecoIp}">-</td></tr>
+            <tr th:if="${#lists.isEmpty(registros)}"><td colspan="6" class="text-center text-muted py-4">Nenhum registro de auditoria.</td></tr></tbody>
+        </table>
+    </div></div></div>
+</th:block>

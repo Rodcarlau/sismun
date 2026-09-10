@@ -1,0 +1,69 @@
+<th:block th:fragment="content">
+    <div class="d-flex justify-content-between align-items-center page-header">
+        <div>
+            <h2 class="mb-1">Novo paiol</h2>
+            <p class="text-muted mb-0">Cadastro de localização de armazenamento.</p>
+        </div>
+        <a class="btn btn-outline-secondary" th:href="@{/paiols}">
+            <i class="bi bi-arrow-left me-1"></i>Voltar
+        </a>
+    </div>
+
+    <div class="card page-card border-0">
+        <div class="card-body">
+            <form th:action="@{/paiols}" th:object="${paiol}" method="post" class="row g-3">
+                <input type="hidden" th:field="*{id}">
+                <div class="col-md-5">
+                    <label class="form-label">Nome</label>
+                    <input type="text" class="form-control" th:field="*{nome}" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Código</label>
+                    <input type="text" class="form-control" th:field="*{codigo}" required readonly>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Organização</label>
+                    <select class="form-select" th:field="*{organizacaoMilitar}">
+                        <option value="">Selecione...</option>
+                        <option th:each="organizacao : ${organizacoes}" th:value="${organizacao.id}" th:text="${organizacao.nome}"></option>
+                    </select>
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label">Endereço</label>
+                    <input type="text" class="form-control" th:field="*{endereco}">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <div class="form-check form-switch mt-4">
+                        <input class="form-check-input" type="checkbox" th:field="*{ativo}" checked>
+                        <label class="form-check-label">Ativo</label>
+                    </div>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <div class="form-check form-switch mb-2">
+                        <input id="paiol-principal" class="form-check-input" type="checkbox" th:field="*{principal}">
+                        <label class="form-check-label" for="paiol-principal">Paiol Principal</label>
+                    </div>
+                    <div class="text-danger small" th:errors="*{principal}"></div>
+                </div>
+                <div id="campo-om-detentora" class="col-md-5">
+                    <label class="form-label">OM Detentora da Munição</label>
+                    <select id="om-detentora" class="form-select" th:field="*{omDetentoraMunicao}">
+                        <option value="">Selecione...</option>
+                        <option th:each="organizacao : ${organizacoes}" th:value="${organizacao.id}" th:text="${organizacao.sigla + ' — ' + organizacao.nome}"></option>
+                    </select>
+                    <div class="text-danger small" th:errors="*{omDetentoraMunicao}"></div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Observação</label>
+                    <textarea class="form-control" rows="4" th:field="*{observacao}"></textarea>
+                </div>
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg me-1"></i>Salvar
+                    </button>
+                </div>
+            </form>
+            <script>document.addEventListener('DOMContentLoaded',()=>{const p=document.getElementById('paiol-principal'),c=document.getElementById('campo-om-detentora'),o=document.getElementById('om-detentora');const atualizar=()=>{c.hidden=!p.checked;o.disabled=!p.checked;o.required=p.checked;if(!p.checked)o.value=''};p.addEventListener('change',atualizar);atualizar()});</script>
+        </div>
+    </div>
+</th:block>

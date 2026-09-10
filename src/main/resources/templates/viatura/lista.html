@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Viaturas</title>
+</head>
+<body>
+<th:block th:fragment="content">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Viaturas</h2><a class="btn btn-primary" th:href="@{/viaturas/novo}">Nova viatura</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle">
+            <thead>
+            <tr>
+                <th>Tipo</th>
+                <th>Modelo</th>
+                <th>Placa</th>
+                <th>Prefixo</th><th>OM pertencente</th><th>Ações</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="viatura : ${viaturas}">
+                <td th:text="${viatura.tipo}">-</td>
+                <td th:text="${viatura.modelo}">-</td>
+                <td th:text="${viatura.placa}">-</td>
+                <td th:text="${viatura.prefixo}">-</td>
+                <td th:text="${viatura.organizacaoMilitar != null ? viatura.organizacaoMilitar.nome : '-'}">-</td><td><a class="btn btn-sm btn-outline-secondary" th:href="@{/viaturas/{id}/editar(id=${viatura.id})}">Alterar</a></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</th:block>
+</body>
+</html>

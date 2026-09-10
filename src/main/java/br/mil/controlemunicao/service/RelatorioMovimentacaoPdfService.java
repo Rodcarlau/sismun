@@ -1,0 +1,29 @@
+package br.mil.controlemunicao.service;
+
+import br.mil.controlemunicao.entity.*;
+import br.mil.controlemunicao.repository.*;
+import com.lowagie.text.*;
+import com.lowagie.text.pdf.*;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import java.awt.Color;
+import java.io.ByteArrayOutputStream;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+
+@Service
+public class RelatorioMovimentacaoPdfService {
+ private static final DateTimeFormatter DATA=DateTimeFormatter.ofPattern("dd/MM/yyyy");
+ private final MovimentacaoRepository movs; private final ItemMovimentacaoRepository itens; private final DevolucaoRepository devolucoes; private final ItemDevolucaoRepository itensDev; private final MovimentacaoEstoqueRepository historico;
+ public RelatorioMovimentacaoPdfService(MovimentacaoRepository m,ItemMovimentacaoRepository i,DevolucaoRepository d,ItemDevolucaoRepository id,MovimentacaoEstoqueRepository h){movs=m;itens=i;devolucoes=d;itensDev=id;historico=h;}
+ @Transactional(readOnly=true) public byte[] gerar(int ano){
+  if(ano<2000||ano>2100)throw new IllegalArgumentException("Ano inválido.");
+  var lista=movs.findByDataSolicitacaoBetween(LocalDate.of(ano,1,1),LocalDate.of(ano,12,31));
+  lista.sort(Comparator.comparing(this::om).thenComparing(Movimentacao::getDataSolicitacao,Comparator.nullsLast(Comparator.naturalOrder())).thenComparing(Movimentacao::getId));
+  try(ByteArrayOutputStream out=new ByteArrayOutputStream()){Document doc=new Document(PageSize.A4,32,32,36,36);PdfWriter.getInstance(doc,out);doc.open();Font normal=FontFactory.getFont(FontFactory.HELVETICA,9);Font titulo=FontFactory.getFont(FontFactory.HELVETICA_BOLD,16);Font grupo=FontFactory.getFont(FontFactory.HELVETICA_BOLD,12,new Color(26,71,115));doc.add(new Paragraph("Relatório anual do fluxo de movimentações - "+ano,titulo));doc.add(new Paragraph("Agrupado por Organização Solicitante e separado por movimentação",normal));String atual=null;for(var m:lista){if(!om(m).equals(atual)){doc.add(new Paragraph("\nOrganização Solicitante: "+om(m),grupo));atual=om(m);}adicionar(doc,m,normal);}if(lista.isEmpty())doc.add(new Paragraph("\nNenhuma movimentação encontrada para o ano informado.",normal));doc.close();return out.toByteArray();}catch(Exception e){throw new IllegalStateException("Não foi possível gerar o relatório PDF.",e);}
+ }
+ private void adicionar(Document doc,Movimentacao m,Font f)throws DocumentException{PdfPTable t=new PdfPTable(new float[]{1.25f,2.75f});t.setWidthPercentage(100);t.setSpacingBefore(7);t.setSpacingAfter(7);linha(t,"Movimentação",m.getDiex()+" (ID "+m.getId()+")",f);linha(t,"Status",txt(m.getStatus()),f);linha(t,"Datas","Solicitação: "+data(m.getDataSolicitacao())+" | Retirada: "+data(m.getDataApanha()),f);linha(t,"Paiol origem / destino",(m.getPaiolOrigem()==null?"-":m.getPaiolOrigem().getNome())+" / "+(m.getPaiolDestino()==null?"-":m.getPaiolDestino().getNome()),f);linha(t,"Oficial solicitante",m.getOficialMunicaoSolicitante()==null?"-":m.getOficialMunicaoSolicitante().getNomeCompleto(),f);linha(t,"Militar do Paiol de Retirada",militar(m.getMilitarPaiolRetirada()),f);linha(t,"Militar do Paiol de Recebimento",militar(m.getMilitarPaiolRecebimento()),f);linha(t,"Oficial de Munição da OM Detentora",militar(m.getOficialMunicaoOmDetentora()),f);linha(t,"Motivo / observação",txt(m.getMotivoRetirada())+" / "+txt(m.getObservacao()),f);linha(t,"Viaturas",join(m.getViaturas().stream().map(v->v.getPrefixo()+" - "+v.getPlaca()).toList()),f);linha(t,"Escolta",join(m.getEscoltas().stream().map(this::militar).toList()),f);linha(t,"Motoristas",join(m.getMotoristas().stream().map(this::militar).toList()),f);for(var i:itens.findByMovimentacaoId(m.getId())){var l=i.getLoteMunicao();linha(t,"Material",l.getMunicao().getTipoMunicao().getNome()+" / "+l.getMunicao().getCalibre()+" | lote "+l.getLote()+" | virola "+txt(l.getVirola()),f);linha(t,"Quantidades","Solicitada: "+i.getQuantidadeSolicitada()+" | Reservada: "+i.getQuantidadeReservada()+" | Separada: "+i.getQuantidadeSeparada()+" | Entregue: "+i.getQuantidadeEntregue(),f);}devolucoes.findByMovimentacaoId(m.getId()).ifPresent(d->{linha(t,"Devolução",data(d.getDataDevolucao())+" | "+d.getStatus(),f);for(var i:itensDev.findByDevolucaoId(d.getId()))linha(t,"Prestação de contas","Consumida: "+i.getQuantidadeConsumida()+" | Devolvida: "+i.getQuantidadeDevolvida()+" | Estojos: "+i.getQuantidadeEstojo(),f);});var ev=historico.findByMovimentacaoId(m.getId());if(!ev.isEmpty())linha(t,"Histórico",join(ev.stream().map(h->h.getDataHora().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))+" - "+h.getTipo()+(h.getStatusPosterior()==null?"":" - "+h.getStatusPosterior())).toList()),f);doc.add(t);}
+ private String militar(Militar m){return m==null?"Não informado":m.getPostoGraduacao().getDescricao()+" — "+m.getNomeCompleto()+" — "+(m.getFuncao()==null?"Função não informada":m.getFuncao().getDescricao())+" — "+m.getOrganizacaoMilitar().getSigla();}
+ private void linha(PdfPTable t,String a,String b,Font f){PdfPCell x=new PdfPCell(new Phrase(a,FontFactory.getFont(FontFactory.HELVETICA_BOLD,9))),y=new PdfPCell(new Phrase(b,f));x.setPadding(5);y.setPadding(5);t.addCell(x);t.addCell(y);}private String om(Movimentacao m){return m.getOmSolicitante()==null?"Não informada":m.getOmSolicitante().getSigla()+" - "+m.getOmSolicitante().getNome();}private String data(LocalDate d){return d==null?"-":DATA.format(d);}private String txt(Object o){return o==null||o.toString().isBlank()?"-":o.toString();}private String join(java.util.List<String> l){return l.isEmpty()?"-":String.join(", ",l);}
+}

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Devoluções</title>
+</head>
+<body>
+<th:block th:fragment="content">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Devoluções</h2>
+    </div>
+    <div class="accordion" id="accordionDevolucoes"><div class="accordion-item"><h2 class="accordion-header" id="cabecalhoDevolucoes"><button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#conteudoDevolucoes" aria-expanded="true" aria-controls="conteudoDevolucoes">Dados das devoluções</button></h2><div id="conteudoDevolucoes" class="accordion-collapse collapse show" aria-labelledby="cabecalhoDevolucoes" data-bs-parent="#accordionDevolucoes"><div class="accordion-body">
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle">
+            <thead>
+            <tr>
+                <th>Movimentação</th>
+                <th>Data</th>
+                <th>Status</th>
+                <th>Motivo da retirada</th>
+                <th>OM Solicitante</th>
+                <th>Material entregue</th><th>Prestação de contas</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="devolucao : ${devolucoes}">
+                <td th:text="${devolucao.movimentacao != null ? devolucao.movimentacao.diex : '-'}">-</td>
+                <td th:text="${#temporals.format(devolucao.dataDevolucao, 'dd/MM/yyyy')}">-</td>
+                <td><span class="badge bg-warning text-dark" th:text="${devolucao.status}">-</span></td>
+                <td th:text="${devolucao.movimentacao != null && devolucao.movimentacao.motivoRetirada != null ? devolucao.movimentacao.motivoRetirada : '-'}">-</td>
+                <td th:text="${devolucao.movimentacao != null && devolucao.movimentacao.omSolicitante != null ? devolucao.movimentacao.omSolicitante.sigla : '-'}">-</td>
+                <td><div th:each="i : ${itensPorDevolucao[devolucao.id]}" th:text="${i.itemMovimentacao.loteMunicao.municao.tipoMunicao.nome + ' / ' + i.itemMovimentacao.loteMunicao.municao.calibre + ' | ' + i.itemMovimentacao.loteMunicao.lote + ' | ' + i.itemMovimentacao.loteMunicao.virola + ' | Entregue: ' + i.itemMovimentacao.quantidadeEntregue}"></div></td>
+                <td><form th:if="${!#lists.isEmpty(itensPorDevolucao[devolucao.id].?[!consumoProcessado])}" method="post" th:action="@{/devolucoes/{id}/consumo(id=${devolucao.id})}" onsubmit="return confirm('Confirma o consumo informado?')"><h6>Consumo</h6><div th:each="i : ${itensPorDevolucao[devolucao.id]}" th:if="${!i.consumoProcessado}" class="mb-2"><input type="hidden" name="itemDevolucaoId" th:value="${i.id}"><label class="form-label small" th:text="${i.itemMovimentacao.loteMunicao.lote + ' / ' + i.itemMovimentacao.loteMunicao.virola}"></label><input type="number" min="0" th:max="${i.itemMovimentacao.quantidadeEntregue - i.quantidadeDevolvida}" value="0" name="quantidadeConsumida" class="form-control form-control-sm" required></div><button class="btn btn-sm btn-primary mb-3">Registrar consumo</button></form><div th:if="${#lists.isEmpty(itensPorDevolucao[devolucao.id].?[!consumoProcessado])}" class="small text-success mb-3">Consumo registrado.</div><form th:if="${!#lists.isEmpty(itensPorDevolucao[devolucao.id].?[!devolucaoProcessada])}" method="post" enctype="multipart/form-data" th:action="@{/devolucoes/{id}/devolucao(id=${devolucao.id})}" onsubmit="return confirm('Confirma a devolução informada?')"><h6>Devolução</h6><div th:each="i : ${itensPorDevolucao[devolucao.id]}" th:if="${!i.devolucaoProcessada}" class="mb-2"><input type="hidden" name="itemDevolucaoId" th:value="${i.id}"><label class="form-label small" th:text="${i.itemMovimentacao.loteMunicao.lote + ' / ' + i.itemMovimentacao.loteMunicao.virola}"></label><input type="number" min="0" th:max="${i.itemMovimentacao.quantidadeEntregue - i.quantidadeConsumida}" value="0" name="quantidadeDevolvida" class="form-control form-control-sm" required></div><input name="observacao" class="form-control form-control-sm mt-1" placeholder="Observação"><input type="file" name="arquivo" class="form-control form-control-sm mt-1"><button class="btn btn-sm btn-success mt-1">Registrar devolução</button></form><div th:if="${#lists.isEmpty(itensPorDevolucao[devolucao.id].?[!devolucaoProcessada])}" class="small text-success">Devolução registrada.</div><a th:if="${devolucao.anexoNome != null}" th:href="@{/devolucoes/{id}/anexo(id=${devolucao.id})}" th:text="${devolucao.anexoNome}"></a></td>
+            </tr>
+            </tbody>
+        </table>
+    </div></div></div></div></div>
+    <select id="paiols-devolucao" hidden><option value="">Selecione o paiol de devolução</option><option th:each="p : ${paiols}" th:value="${p.id}" th:text="${p.nome + ' — ' + p.organizacaoMilitar.sigla}"></option></select>
+    <script>document.addEventListener('DOMContentLoaded',()=>{const modelo=document.getElementById('paiols-devolucao');document.querySelectorAll('form[action$="/devolucao"] input[name="quantidadeDevolvida"]').forEach(q=>{const s=modelo.cloneNode(true);s.removeAttribute('id');s.removeAttribute('hidden');s.name='paiolDestinoId';s.className='form-select form-select-sm mt-1';s.required=true;q.insertAdjacentElement('afterend',s)});});</script>
+</th:block>
+</body>
+</html>

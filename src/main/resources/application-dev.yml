@@ -1,0 +1,32 @@
+spring:
+  datasource:
+    url: ${SISMUN_DB_URL:jdbc:postgresql://localhost:5432/sismun}
+    username: ${SISMUN_DB_USERNAME:sismun_app}
+    password: ${SISMUN_DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: SisMunHikariPool
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      validation-timeout: 5000
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    validate-on-migrate: true
+  h2:
+    console:
+      enabled: false
+app:
+  seed:
+    enabled: false

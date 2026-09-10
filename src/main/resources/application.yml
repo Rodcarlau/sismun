@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: controle-municao
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  thymeleaf:
+    cache: false
+
+server:
+  port: 8080
+
+logging:
+  level:
+    org.springframework.security: INFO
+
+app:
+  seed:
+    enabled: false

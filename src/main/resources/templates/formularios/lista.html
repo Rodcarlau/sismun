@@ -1,0 +1,15 @@
+<th:block th:fragment="content" xmlns:th="http://www.thymeleaf.org">
+    <div class="mb-4">
+        <h2 class="mb-1">Documentos / Formulários</h2>
+        <p class="text-muted mb-0">Modelos para preenchimento manual e impressão.</p>
+    </div>
+    <div class="card page-card border-0 mb-3" th:each="formulario : ${formularios}">
+        <div class="card-body">
+            <h3 class="h5" th:text="${formulario.titulo}">Formulário</h3>
+            <p class="text-muted">Modelo DOCX em branco para preenchimento manual.</p>
+            <a class="btn btn-primary" th:href="@{/formularios/{arquivo}(arquivo=${formulario.arquivo})}">
+                <i class="bi bi-download me-2"></i>Baixar modelo
+            </a>
+        </div>
+    </div>
+</th:block>

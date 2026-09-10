@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Estoque</title>
+</head>
+<body>
+<th:block th:fragment="content">
+    <div class="card border-0 mb-3"><div class="card-body"><h5>Total consolidado por tipo de munição</h5><div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Tipo de munição</th><th>Estoque físico</th><th>Reservado</th><th>Disponível</th></tr></thead><tbody><tr th:each="total : ${totaisConsolidados}"><td th:text="${total.tipoMunicao}">-</td><td th:text="${total.quantidadeAtual}">0</td><td th:text="${total.quantidadeReservada}">0</td><td class="fw-bold" th:text="${total.quantidadeDisponivel}">0</td></tr><tr th:if="${#lists.isEmpty(totaisConsolidados)}"><td colspan="4" class="text-muted">Nenhum estoque cadastrado.</td></tr></tbody></table></div></div></div>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Estoque</h2><a class="btn btn-primary" th:href="@{/estoque/novo}">Novo estoque</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle">
+            <thead>
+            <tr>
+                <th>Paiól</th>
+                <th>Lote</th><th>Virola</th><th>Tipo de munição</th>
+                <th>Estoque físico</th><th>Reservado</th><th>Disponível</th><th>Validade</th>
+                <th>Última movimentação</th><th>Ações</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="estoque : ${estoques}">
+                <td th:text="${estoque.paiol != null ? estoque.paiol.nome : '-'}">-</td>
+                <td th:text="${estoque.loteMunicao != null ? estoque.loteMunicao.lote : '-'}">-</td>
+                <td th:text="${estoque.loteMunicao != null ? estoque.loteMunicao.virola : '-'}">-</td><td th:text="${estoque.loteMunicao != null && estoque.loteMunicao.municao != null ? estoque.loteMunicao.municao.tipoMunicao.nome : '-'}">-</td>
+                <td th:text="${estoque.quantidadeAtual}">0</td><td th:text="${estoque.quantidadeReservada}">0</td><td class="fw-bold" th:text="${estoque.quantidadeDisponivel}">0</td><td th:text="${estoque.loteMunicao.dataValidade}">-</td>
+                <td th:text="${estoque.ultimaMovimentacao}">-</td>
+                <td><a class="btn btn-sm btn-outline-secondary" th:href="@{/estoque/{id}/editar(id=${estoque.id})}">Alterar</a></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</th:block>
+</body>
+</html>

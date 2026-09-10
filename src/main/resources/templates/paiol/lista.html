@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Paióis</title>
+</head>
+<body>
+<th:block th:fragment="content">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Paióis</h2>
+        <a class="btn btn-primary" th:href="@{/paiols/novo}">Novo paiol</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle">
+            <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Código</th>
+                <th>Organização</th>
+                <th>Endereço</th><th>Ações</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="paiol : ${paiols}">
+                <td th:text="${paiol.nome}">-</td>
+                <td th:text="${paiol.codigo}">-</td>
+                <td th:text="${paiol.organizacaoMilitar != null ? paiol.organizacaoMilitar.nome : '-'}">-</td>
+                <td th:text="${paiol.endereco}">-</td>
+                <td><a class="btn btn-sm btn-outline-secondary" th:href="@{/paiols/{id}/editar(id=${paiol.id})}">Alterar</a></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</th:block>
+</body>
+</html>

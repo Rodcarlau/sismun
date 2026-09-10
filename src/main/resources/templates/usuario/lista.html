@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Usuários</title>
+</head>
+<body>
+<th:block th:fragment="content">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Usuários</h2><a class="btn btn-primary" th:href="@{/usuarios/novo}">Novo usuário</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle">
+            <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Usuário</th>
+                <th>E-mail</th>
+                <th>Perfis</th><th>Status</th><th>Ações</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="usuario : ${usuarios}">
+                <td th:text="${usuario.nome}">-</td>
+                <td th:text="${usuario.username}">-</td>
+                <td th:text="${usuario.email}">-</td>
+                <td>
+                    <span class="badge bg-secondary me-1" th:each="perfil : ${usuario.perfis}" th:text="${perfil.nome}">-</span>
+                </td>
+                <td><span class="badge" th:classappend="${usuario.ativo ? 'bg-success' : 'bg-secondary'}" th:text="${usuario.ativo ? 'Ativo' : 'Inativo'}"></span></td><td><a class="btn btn-sm btn-outline-secondary" th:href="@{/usuarios/{id}/editar(id=${usuario.id})}">Alterar</a> <form class="d-inline" method="post" th:action="@{/usuarios/{id}/status(id=${usuario.id})}"><button class="btn btn-sm btn-outline-warning" th:text="${usuario.ativo ? 'Desativar' : 'Ativar'}"></button></form></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</th:block>
+</body>
+</html>

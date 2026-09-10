@@ -1,0 +1,87 @@
+<th:block th:fragment="content">
+    <div class="d-flex justify-content-between align-items-center page-header">
+        <div>
+            <h2 class="mb-1">Dashboard</h2>
+            <p class="text-muted mb-0">Visão geral do controle de munição</p>
+        </div>
+        <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-2">Ambiente H2</span>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="card kpi-card h-100 border-0">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small">Munições</div>
+                        <div class="fs-3 fw-bold" th:text="${totalMunicoes}">0</div>
+                    </div>
+                    <div class="kpi-icon bg-primary-subtle text-primary">
+                        <i class="bi bi-box-seam"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="card kpi-card h-100 border-0">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small">Paióis</div>
+                        <div class="fs-3 fw-bold" th:text="${totalPaiols}">0</div>
+                    </div>
+                    <div class="kpi-icon bg-success-subtle text-success">
+                        <i class="bi bi-house-door"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="card kpi-card h-100 border-0">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small">Estoque total</div>
+                        <div class="fs-3 fw-bold" th:text="${totalEstoque}">0</div>
+                    </div>
+                    <div class="kpi-icon bg-warning-subtle text-warning">
+                        <i class="bi bi-archive"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="card kpi-card h-100 border-0">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small">Movimentações pendentes</div>
+                        <div class="fs-3 fw-bold" th:text="${movimentacoesPendentes}">0</div>
+                    </div>
+                    <div class="kpi-icon bg-info-subtle text-info">
+                        <i class="bi bi-arrow-left-right"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4"><div class="col-md-4"><div class="card border-0"><div class="card-body"><div class="text-muted">Reservado</div><div class="fs-3 fw-bold" th:text="${totalReservado}">0</div></div></div></div><div class="col-md-4"><div class="card border-0"><div class="card-body"><div class="text-muted">Disponível</div><div class="fs-3 fw-bold" th:text="${totalDisponivel}">0</div></div></div></div><div class="col-md-4"><div class="card border-0"><div class="card-body"><div>Aguardando separação: <b th:text="${aguardandoSeparacao}">0</b></div><div>Separadas: <b th:text="${movimentacoesSeparadas}">0</b></div><div>Aguardando devolução: <b th:text="${aguardandoDevolucao}">0</b></div></div></div></div></div>
+
+    <div class="card page-card border-0">
+        <div class="card-body">
+            <h5 class="card-title mb-3">Resumo operacional</h5>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <p class="mb-2"><strong>Total de movimentações:</strong> <span th:text="${movimentacoesTotais}">0</span></p>
+                    <p class="mb-0"><strong>Ambiente:</strong> Desenvolvimento com H2</p>
+                </div>
+                <div class="col-md-6">
+                    <div class="alert alert-light mb-0 border-0">
+                        <i class="bi bi-info-circle me-2 text-primary"></i>
+                        O painel administrativo está renderizando em um único layout centralizado e responsivo.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</th:block>

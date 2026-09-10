@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<body>
+<aside th:fragment="sidebar" class="d-none d-lg-block bg-dark text-white min-vh-100 p-3" style="width: 280px;">
+    <div class="d-flex align-items-center gap-2 mb-4 px-2">
+        <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+            <i class="bi bi-shield-fill-check text-white"></i>
+        </div>
+        <div>
+            <div class="fw-bold">Controle de Munição</div>
+        </div>
+    </div>
+
+    <nav class="nav flex-column gap-1">
+        <a class="nav-link rounded px-3 py-2" th:classappend="${#strings.startsWith(currentPath, '/dashboard')} ? 'active bg-white bg-opacity-10' : 'text-white-50'" th:href="@{/dashboard}"><i class="bi bi-grid-1x2 me-2"></i>Dashboard</a>
+        <div class="mt-3 small text-uppercase text-secondary px-3">Cadastros</div>
+        <a class="nav-link rounded px-3 py-2" th:classappend="${#strings.startsWith(currentPath, '/organizacoes')} ? 'active bg-white bg-opacity-10' : 'text-white-50'" th:href="@{/organizacoes}"><i class="bi bi-building me-2"></i>Organizações Militares</a>
+        <a class="nav-link rounded px-3 py-2" th:classappend="${#strings.startsWith(currentPath, '/municoes')} ? 'active bg-white bg-opacity-10' : 'text-white-50'" th:href="@{/municoes}"><i class="bi bi-box-seam me-2"></i>Munições</a>
+        <a class="nav-link rounded px-3 py-2" th:classappend="${#strings.startsWith(currentPath, '/lotes')} ? 'active bg-white bg-opacity-10' : 'text-white-50'" th:href="@{/lotes}"><i class="bi bi-ticket-perforated me-2"></i>Lotes</a>
+        <a class="nav-link rounded px-3 py-2" th:classappend="${#strings.startsWith(currentPath, '/paiols')} ? 'active bg-white bg-opacity-10' : 'text-white-50'" th:href="@{/paiols}"><i class="bi bi-house-door me-2"></i>Paióis</a>
+        <a class="nav-link rounded px-3 py-2" th:classappend="${#strings.startsWith(currentPath, '/militares')} ? 'active bg-white bg-opacity-10' : 'text-white-50'" th:href="@{/militares}"><i class="bi bi-person-badge me-2"></i>Militares</a>
+        <a class="nav-link rounded px-3 py-2" th:classappend="${#strings.startsWith(currentPath, '/viaturas')} ? 'active bg-white bg-opacity-10' : 'text-white-50'" th:href="@{/viaturas}"><i class="bi bi-truck me-2"></i>Viaturas</a>
+
+        <div class="mt-3 small text-uppercase text-secondary px-3">Operações</div>
+        <a class="nav-link rounded px-3 py-2" th:classappend="${#strings.startsWith(currentPath, '/estoque')} ? 'active bg-white bg-opacity-10' : 'text-white-50'" th:href="@{/estoque}"><i class="bi bi-archive me-2"></i>Estoque</a>
+        <a class="nav-link rounded px-3 py-2" th:classappend="${#strings.startsWith(currentPath, '/movimentacoes')} ? 'active bg-white bg-opacity-10' : 'text-white-50'" th:href="@{/movimentacoes}"><i class="bi bi-arrow-left-right me-2"></i>Movimentações</a>
+        <a class="nav-link rounded px-3 py-2" th:classappend="${#strings.startsWith(currentPath, '/devolucoes')} ? 'active bg-white bg-opacity-10' : 'text-white-50'" th:href="@{/devolucoes}"><i class="bi bi-arrow-counterclockwise me-2"></i>Devoluções</a>
+
+        <div class="mt-3 small text-uppercase text-secondary px-3">Documentos</div>
+        <a class="nav-link rounded px-3 py-2" th:classappend="${#strings.startsWith(currentPath, '/formularios')} ? 'active bg-white bg-opacity-10' : 'text-white-50'" th:href="@{/formularios}"><i class="bi bi-file-earmark-word me-2"></i>Formulários</a>
+        <div class="mt-3 small text-uppercase text-secondary px-3">Administração</div>
+        <a class="nav-link rounded px-3 py-2" th:classappend="${#strings.startsWith(currentPath, '/usuarios')} ? 'active bg-white bg-opacity-10' : 'text-white-50'" th:href="@{/usuarios}"><i class="bi bi-people me-2"></i>Usuários</a>
+        <a class="nav-link rounded px-3 py-2" th:classappend="${#strings.startsWith(currentPath, '/auditoria')} ? 'active bg-white bg-opacity-10' : 'text-white-50'" th:href="@{/auditoria}"><i class="bi bi-journal-text me-2"></i>Auditoria</a>
+        <a class="nav-link rounded px-3 py-2 text-white-50" th:href="@{/h2-console}" target="_blank"><i class="bi bi-database me-2"></i>H2 Console</a>
+    </nav>
+</aside>
+
+<div th:fragment="sidebar-mobile" class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="sidebarOffcanvas" aria-labelledby="sidebarOffcanvasLabel">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title text-white" id="sidebarOffcanvasLabel">Controle de Munição</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body p-0">
+        <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+    </div>
+</div>
+</body>
+</html>

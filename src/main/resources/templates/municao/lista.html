@@ -1,0 +1,52 @@
+<th:block th:fragment="content">
+    <div class="d-flex justify-content-between align-items-center page-header">
+        <div>
+            <h2 class="mb-1">Munições</h2>
+            <p class="text-muted mb-0">Gerenciamento das munições cadastradas no sistema.</p>
+        </div>
+        <a class="btn btn-primary" th:href="@{/municoes/novo}">
+            <i class="bi bi-plus-lg me-1"></i>Nova munição
+        </a>
+    </div>
+
+    <div class="card page-card border-0">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead>
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Calibre</th>
+                        <th>Descrição</th>
+                        <th>Fabricante</th>
+                        <th>Status</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="municao : ${municoes}">
+                        <td th:text="${municao.tipoMunicao != null ? municao.tipoMunicao.nome : '-'}">-</td>
+                        <td th:text="${municao.calibre}">-</td>
+                        <td th:text="${municao.descricao}">-</td>
+                        <td th:text="${municao.fabricante}">-</td>
+                        <td>
+                            <span class="badge status-badge" th:classappend="${municao.ativo ? 'bg-success' : 'bg-secondary'}"
+                                  th:text="${municao.ativo ? 'Ativa' : 'Inativa'}">Ativa</span>
+                        </td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-outline-secondary" th:href="@{/municoes/editar/{id}(id=${municao.id})}"><i class="bi bi-pencil"></i></a>
+                            <form th:action="@{/municoes/inativar/{id}(id=${municao.id})}" method="post" class="d-inline">
+                                <button type="submit" class="btn btn-sm" th:classappend="${municao.ativo ? 'btn-outline-warning' : 'btn-outline-success'}"
+                                        th:text="${municao.ativo ? 'Inativar' : 'Ativar'}">Ativar</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(municoes)}">
+                        <td colspan="6" class="text-center text-muted py-4">Nenhuma munição cadastrada.</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</th:block>

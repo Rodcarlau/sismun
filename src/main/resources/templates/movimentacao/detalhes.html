@@ -1,0 +1,253 @@
+<th:block th:fragment="content">
+    <div id="pendencias-aceite" th:if="${movimentacao.status.name()=='SOLICITADA' && !#lists.isEmpty(camposPendentesAceite)}" class="alert alert-warning" th:text="${'Preencha todos os campos obrigatórios antes do aceite: ' + #strings.listJoin(camposPendentesAceite, ', ') + '.'}"></div>
+    <script>document.addEventListener('DOMContentLoaded',()=>{if(document.getElementById('pendencias-aceite')){const botao=document.querySelector('button[value="autorizar"]');if(botao)botao.disabled=true;}});</script>
+    <div id="consumo-por-item" hidden><span th:each="i:${itens}" th:attr="data-item=${i.id},data-consumido=${consumidoPorItem[i.id] != null ? consumidoPorItem[i.id] : 0}"></span></div>
+    <script>document.addEventListener('DOMContentLoaded',()=>{const dados=[...document.querySelectorAll('#consumo-por-item span')];const tabela=[...document.querySelectorAll('table')].find(t=>[...t.querySelectorAll('th')].some(h=>h.textContent.trim()==='Devolvida'));if(!tabela)return;const th=document.createElement('th');th.textContent='Consumido';tabela.querySelector('thead tr').appendChild(th);[...tabela.querySelectorAll('tbody tr')].forEach((r,n)=>{const td=document.createElement('td');td.textContent=dados[n]?.dataset.consumido||'0';r.appendChild(td)})});</script>
+
+    <div class="page-header d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <div class="text-muted" th:if="${movimentacao.eb != null && !movimentacao.eb.isBlank()}" th:text="${'EB: ' + movimentacao.eb}"></div>
+            <h2 class="mb-1" th:text="${'Movimentação ' + movimentacao.diex}">Movimentação</h2>
+            <span class="badge bg-info text-dark" th:text="${movimentacao.status != null ? movimentacao.status : 'Não informado'}"></span>
+        </div>
+        <a class="btn btn-outline-secondary" th:href="@{/movimentacoes}">Voltar</a>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-12">
+            <div class="card page-card border-0 mb-3">
+                <div class="card-body">
+                    <h5 class="mb-3">Dados da Solicitação</h5>
+                    <div class="row g-3">
+                        <div class="col-md-3"><strong>DIEx:</strong><div th:text="${movimentacao.diex != null && !movimentacao.diex.isBlank() ? movimentacao.diex : 'Não informado'}"></div></div>
+                        <div class="col-md-3"><strong>EB:</strong><div th:text="${movimentacao.eb != null && !movimentacao.eb.isBlank() ? movimentacao.eb : 'Não informado'}"></div></div>
+                        <div class="col-md-3"><strong>Data da Solicitação:</strong><div th:text="${movimentacao.dataSolicitacao != null ? #temporals.format(movimentacao.dataSolicitacao, 'dd/MM/yyyy') : 'Não informado'}"></div></div>
+                        <div class="col-md-3"><strong>Data da Retirada:</strong><div th:text="${movimentacao.dataApanha != null ? #temporals.format(movimentacao.dataApanha, 'dd/MM/yyyy') : 'Não informado'}"></div></div>
+                        <div class="col-md-3" th:if="${movimentacao.dataExecucaoAtividade != null}"><strong>Data da Execução da Atividade:</strong><div th:text="${#temporals.format(movimentacao.dataExecucaoAtividade, 'dd/MM/yyyy')}"></div></div>
+                        <div class="col-md-3" th:unless="${movimentacao.dataExecucaoAtividade != null}"><strong>Data da Execução da Atividade:</strong><div>Não informado</div></div>
+                        <div class="col-md-6"><strong>Motivo da Retirada:</strong><div th:text="${movimentacao.motivoRetirada != null && !movimentacao.motivoRetirada.isBlank() ? movimentacao.motivoRetirada : 'Não informado'}"></div></div>
+                        <div class="col-12"><strong>Observação:</strong><div th:text="${movimentacao.observacao != null && !movimentacao.observacao.isBlank() ? movimentacao.observacao : 'Não informado'}"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="card page-card border-0 mb-3">
+                <div class="card-body">
+                    <h5 class="mb-3">Organizações e Paiós</h5>
+                    <div class="row g-3">
+                        <div class="col-md-4"><strong>OM Solicitante:</strong><div th:text="${movimentacao.omSolicitante != null ? movimentacao.omSolicitante.sigla + ' - ' + movimentacao.omSolicitante.nome : 'Não informado'}"></div></div>
+                        <div class="col-md-4"><strong>OM Local de Apanha:</strong><div th:text="${movimentacao.omLocalApanha != null ? movimentacao.omLocalApanha.sigla + ' - ' + movimentacao.omLocalApanha.nome : 'Não informado'}"></div></div>
+                        <div class="col-md-4"><strong>OM Destino:</strong><div th:text="${movimentacao.omDestino != null ? movimentacao.omDestino.sigla + ' - ' + movimentacao.omDestino.nome : 'Não informado'}"></div></div>
+                        <div class="col-md-6"><strong>Paiol de Origem:</strong><div th:text="${movimentacao.paiolOrigem != null ? movimentacao.paiolOrigem.nome : 'Não informado'}"></div></div>
+                        <div class="col-md-6"><strong>Paiol de Destino:</strong><div th:text="${movimentacao.paiolDestino != null ? movimentacao.paiolDestino.nome : 'Não informado'}"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="card page-card border-0 mb-3">
+                <div class="card-body">
+                    <h5 class="mb-3">Responsáveis</h5>
+                    <div class="row g-3">
+                        <div class="col-md-6"><strong>Oficial de Munição Solicitante:</strong><div th:text="${movimentacao.oficialMunicaoSolicitante != null ? (movimentacao.oficialMunicaoSolicitante.postoGraduacao != null ? movimentacao.oficialMunicaoSolicitante.postoGraduacao.descricao : '') + ' — ' + movimentacao.oficialMunicaoSolicitante.nomeCompleto + ' — ' + (movimentacao.oficialMunicaoSolicitante.organizacaoMilitar != null ? movimentacao.oficialMunicaoSolicitante.organizacaoMilitar.sigla : 'OM não informada') : 'Não informado'}"></div></div>
+                        <div class="col-md-6"><strong>Militar do Paiol de Retirada:</strong><div th:text="${movimentacao.militarPaiolRetirada != null ? (movimentacao.militarPaiolRetirada.postoGraduacao != null ? movimentacao.militarPaiolRetirada.postoGraduacao.descricao : '') + ' — ' + movimentacao.militarPaiolRetirada.nomeCompleto + ' — ' + (movimentacao.militarPaiolRetirada.organizacaoMilitar != null ? movimentacao.militarPaiolRetirada.organizacaoMilitar.sigla : 'OM não informada') : 'Não informado'}"></div></div>
+                        <div class="col-md-6"><strong>Militar do Paiol de Recebimento:</strong><div th:text="${movimentacao.militarPaiolRecebimento != null ? (movimentacao.militarPaiolRecebimento.postoGraduacao != null ? movimentacao.militarPaiolRecebimento.postoGraduacao.descricao : '') + ' — ' + movimentacao.militarPaiolRecebimento.nomeCompleto + ' — ' + (movimentacao.militarPaiolRecebimento.organizacaoMilitar != null ? movimentacao.militarPaiolRecebimento.organizacaoMilitar.sigla : 'OM não informada') : 'Não informado'}"></div></div>
+                        <div class="col-md-6"><strong>Oficial de Munição da OM Detentora:</strong><div th:text="${movimentacao.oficialMunicaoOmDetentora != null ? (movimentacao.oficialMunicaoOmDetentora.postoGraduacao != null ? movimentacao.oficialMunicaoOmDetentora.postoGraduacao.descricao : '') + ' — ' + movimentacao.oficialMunicaoOmDetentora.nomeCompleto + ' — ' + (movimentacao.oficialMunicaoOmDetentora.funcao != null ? movimentacao.oficialMunicaoOmDetentora.funcao.descricao : 'Função não informada') + ' — ' + (movimentacao.oficialMunicaoOmDetentora.organizacaoMilitar != null ? movimentacao.oficialMunicaoOmDetentora.organizacaoMilitar.sigla : 'OM não informada') : 'Não informado'}"></div></div>
+                        <div class="col-md-6" th:if="${movimentacao.oficialResponsavelPaiol != null}"><strong>Oficial Responsável pelo Paiol:</strong><div th:text="${(movimentacao.oficialResponsavelPaiol.postoGraduacao != null ? movimentacao.oficialResponsavelPaiol.postoGraduacao.descricao : '') + ' — ' + movimentacao.oficialResponsavelPaiol.nomeCompleto + ' — ' + (movimentacao.oficialResponsavelPaiol.organizacaoMilitar != null ? movimentacao.oficialResponsavelPaiol.organizacaoMilitar.sigla : 'OM não informada')}"></div></div>
+                        <div class="col-md-6" th:if="${movimentacao.oficialResponsavelEntrega != null}"><strong>Oficial Responsável pela Entrega:</strong><div th:text="${(movimentacao.oficialResponsavelEntrega.postoGraduacao != null ? movimentacao.oficialResponsavelEntrega.postoGraduacao.descricao : '') + ' — ' + movimentacao.oficialResponsavelEntrega.nomeCompleto + ' — ' + (movimentacao.oficialResponsavelEntrega.organizacaoMilitar != null ? movimentacao.oficialResponsavelEntrega.organizacaoMilitar.sigla : 'OM não informada')}"></div></div>
+                        <div class="col-md-6" th:if="${movimentacao.oficialResponsavelRecebimento != null}"><strong>Oficial Responsável pelo Recebimento:</strong><div th:text="${(movimentacao.oficialResponsavelRecebimento.postoGraduacao != null ? movimentacao.oficialResponsavelRecebimento.postoGraduacao.descricao : '') + ' — ' + movimentacao.oficialResponsavelRecebimento.nomeCompleto + ' — ' + (movimentacao.oficialResponsavelRecebimento.organizacaoMilitar != null ? movimentacao.oficialResponsavelRecebimento.organizacaoMilitar.sigla : 'OM não informada')}"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="card page-card border-0 mb-3">
+                <div class="card-body">
+                    <h5 class="mb-3">Transporte e Segurança</h5>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <strong>Viaturas:</strong>
+                            <div th:if="${!#lists.isEmpty(movimentacao.viaturas)}" th:each="viatura, iter : ${movimentacao.viaturas}">
+                                <span th:text="${viatura.prefixo + ' — ' + viatura.placa}"></span><span th:if="${!iter.last}">; </span>
+                            </div>
+                            <div th:unless="${!#lists.isEmpty(movimentacao.viaturas)}">Não informado</div>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Motoristas:</strong>
+                            <div th:if="${!#lists.isEmpty(movimentacao.motoristas)}" th:each="motorista, iter : ${movimentacao.motoristas}">
+                                <span th:text="${(motorista.postoGraduacao != null ? motorista.postoGraduacao.descricao : '') + ' — ' + motorista.nomeCompleto + ' — ' + (motorista.organizacaoMilitar != null ? motorista.organizacaoMilitar.sigla : 'OM não informada')}"></span><span th:if="${!iter.last}">; </span>
+                            </div>
+                            <div th:unless="${!#lists.isEmpty(movimentacao.motoristas)}">Não informado</div>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Escolta:</strong>
+                            <div th:if="${!#lists.isEmpty(movimentacao.escoltas)}" th:each="escolta, iter : ${movimentacao.escoltas}">
+                                <span th:text="${(escolta.postoGraduacao != null ? escolta.postoGraduacao.descricao : '') + ' — ' + escolta.nomeCompleto + ' — ' + (escolta.funcao != null ? escolta.funcao.descricao : 'Função não informada') + ' — ' + (escolta.organizacaoMilitar != null ? escolta.organizacaoMilitar.sigla : 'OM não informada')}"></span><span th:if="${!iter.last}">; </span>
+                            </div>
+                            <div th:unless="${!#lists.isEmpty(movimentacao.escoltas)}">Não informado</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="card page-card border-0 mb-3">
+                <div class="card-body">
+                    <h5 class="mb-3">Itens Solicitados</h5>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Calibre</th>
+                                <th>Lote</th>
+                                <th>Virola</th>
+                                <th>Solicitada</th>
+                                <th>Reservada</th>
+                                <th>Entregue</th>
+                                <th>Devolvida</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="i:${itens}">
+                                <td th:text="${i.loteMunicao != null && i.loteMunicao.municao != null && i.loteMunicao.municao.tipoMunicao != null ? i.loteMunicao.municao.tipoMunicao.nome : 'Não informado'}"></td>
+                                <td th:text="${i.loteMunicao != null && i.loteMunicao.municao != null ? i.loteMunicao.municao.calibre : 'Não informado'}"></td>
+                                <td th:text="${i.loteMunicao != null ? i.loteMunicao.lote : 'Não informado'}"></td>
+                                <td th:text="${i.loteMunicao != null ? i.loteMunicao.virola : 'Não informado'}"></td>
+                                <td th:text="${i.quantidadeSolicitada != null ? i.quantidadeSolicitada : 0}"></td>
+                                <td th:text="${i.quantidadeReservada != null ? i.quantidadeReservada : 0}"></td>
+                                <td th:text="${i.quantidadeEntregue != null ? i.quantidadeEntregue : 0}"></td>
+                                <td th:text="${devolvidoPorItem[i.id] != null ? devolvidoPorItem[i.id] : 0}"></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="card page-card border-0 mb-3">
+                <div class="card-body">
+                    <h5 class="mb-3">Anexos</h5>
+                    <div th:if="${movimentacao.anexoNome != null && !movimentacao.anexoNome.isBlank()}">
+                        <a th:href="@{/movimentacoes/{id}/anexo(id=${movimentacao.id})}" target="_blank" th:text="${movimentacao.anexoNome}"></a>
+                    </div>
+                    <div th:unless="${movimentacao.anexoNome != null && !movimentacao.anexoNome.isBlank()}">Não informado</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12" th:if="${movimentacao.status.name() == 'SOLICITADA'}">
+            <div class="card page-card border-0 mb-3">
+                <div class="card-body">
+                    <h5 class="mb-3">Documentos</h5>
+                    <p class="text-muted">Consulte os dados da solicitação e baixe o modelo DOCX para preenchimento manual.</p>
+                    <div class="accordion" id="documentos-movimentacao">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="cabecalho-apanho">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#dados-apanho" aria-expanded="false" aria-controls="dados-apanho">Apanho de Munição</button>
+                            </h2>
+                            <div id="dados-apanho" class="accordion-collapse collapse" aria-labelledby="cabecalho-apanho" data-bs-parent="#documentos-movimentacao">
+                                <div class="accordion-body">
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-md-4"><strong>DIEx:</strong><div th:text="${movimentacao.diex != null && !movimentacao.diex.isBlank() ? movimentacao.diex : 'Não informado'}"></div></div>
+                                        <div class="col-md-4"><strong>EB:</strong><div th:text="${movimentacao.eb != null && !movimentacao.eb.isBlank() ? movimentacao.eb : 'Não informado'}"></div></div>
+                                        <div class="col-md-4"><strong>Data da Solicitação:</strong><div th:text="${movimentacao.dataSolicitacao != null ? #temporals.format(movimentacao.dataSolicitacao, 'dd/MM/yyyy') : 'Não informado'}"></div></div>
+                                        <div class="col-md-4"><strong>Data da Retirada:</strong><div th:text="${movimentacao.dataApanha != null ? #temporals.format(movimentacao.dataApanha, 'dd/MM/yyyy') : 'Não informado'}"></div></div>
+                                        <div class="col-md-8"><strong>OM Solicitante:</strong><div th:text="${movimentacao.omSolicitante != null ? movimentacao.omSolicitante.sigla + ' - ' + movimentacao.omSolicitante.nome : 'Não informado'}"></div></div>
+                                        <div class="col-12"><strong>Motivo:</strong><div th:text="${movimentacao.motivoRetirada != null && !movimentacao.motivoRetirada.isBlank() ? movimentacao.motivoRetirada : 'Não informado'}"></div></div>
+                                    </div>
+                                    <a class="btn btn-outline-primary" th:href="@{/formularios/modelo_apanho_de_municao.docx}"><i class="bi bi-download me-2"></i>Baixar modelo DOCX</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="cabecalho-apoio">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#dados-apoio" aria-expanded="false" aria-controls="dados-apoio">Apoio / Materiais de Escolta Armada</button>
+                            </h2>
+                            <div id="dados-apoio" class="accordion-collapse collapse" aria-labelledby="cabecalho-apoio" data-bs-parent="#documentos-movimentacao">
+                                <div class="accordion-body">
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-md-4"><strong>DIEx:</strong><div th:text="${movimentacao.diex != null && !movimentacao.diex.isBlank() ? movimentacao.diex : 'Não informado'}"></div></div>
+                                        <div class="col-md-4"><strong>EB:</strong><div th:text="${movimentacao.eb != null && !movimentacao.eb.isBlank() ? movimentacao.eb : 'Não informado'}"></div></div>
+                                        <div class="col-md-4"><strong>Data da Execução:</strong><div th:text="${movimentacao.dataExecucaoAtividade != null ? #temporals.format(movimentacao.dataExecucaoAtividade, 'dd/MM/yyyy') : 'Não informado'}"></div></div>
+                                        <div class="col-md-6"><strong>OM Solicitante:</strong><div th:text="${movimentacao.omSolicitante != null ? movimentacao.omSolicitante.sigla + ' - ' + movimentacao.omSolicitante.nome : 'Não informado'}"></div></div>
+                                        <div class="col-md-6"><strong>OM Destino:</strong><div th:text="${movimentacao.omDestino != null ? movimentacao.omDestino.sigla + ' - ' + movimentacao.omDestino.nome : 'Não informado'}"></div></div>
+                                        <div class="col-12"><strong>Escolta:</strong><div th:text="${#lists.isEmpty(movimentacao.escoltas) ? 'Não informado' : #strings.listJoin(movimentacao.escoltas.![postoGraduacao.descricao + ' — ' + nomeCompleto + ' — ' + organizacaoMilitar.sigla], ', ')}"></div></div>
+                                    </div>
+                                    <a class="btn btn-outline-primary" th:href="@{/formularios/modelo_apoio_materiais_escolta_armada.docx}"><i class="bi bi-download me-2"></i>Baixar modelo DOCX</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="cabecalho-devolucao">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#dados-devolucao" aria-expanded="false" aria-controls="dados-devolucao">Devolução de Cartuchos de Munições</button>
+                            </h2>
+                            <div id="dados-devolucao" class="accordion-collapse collapse" aria-labelledby="cabecalho-devolucao" data-bs-parent="#documentos-movimentacao">
+                                <div class="accordion-body">
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-md-4"><strong>DIEx:</strong><div th:text="${movimentacao.diex != null && !movimentacao.diex.isBlank() ? movimentacao.diex : 'Não informado'}"></div></div>
+                                        <div class="col-md-4"><strong>EB:</strong><div th:text="${movimentacao.eb != null && !movimentacao.eb.isBlank() ? movimentacao.eb : 'Não informado'}"></div></div>
+                                        <div class="col-md-4"><strong>Data da Retirada:</strong><div th:text="${movimentacao.dataApanha != null ? #temporals.format(movimentacao.dataApanha, 'dd/MM/yyyy') : 'Não informado'}"></div></div>
+                                        <div class="col-md-6"><strong>Paiol de Origem:</strong><div th:text="${movimentacao.paiolOrigem != null ? movimentacao.paiolOrigem.nome : 'Não informado'}"></div></div>
+                                        <div class="col-md-6"><strong>Paiol de Destino:</strong><div th:text="${movimentacao.paiolDestino != null ? movimentacao.paiolDestino.nome : 'Não informado'}"></div></div>
+                                    </div>
+                                    <a class="btn btn-outline-primary" th:href="@{/formularios/modelo_devolucao_cartuchos_de_municoes.docx}"><i class="bi bi-download me-2"></i>Baixar modelo DOCX</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="cabecalho-extensao">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#dados-extensao" aria-expanded="false" aria-controls="dados-extensao">Extensão de Guarda de Munição</button>
+                            </h2>
+                            <div id="dados-extensao" class="accordion-collapse collapse" aria-labelledby="cabecalho-extensao" data-bs-parent="#documentos-movimentacao">
+                                <div class="accordion-body">
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-md-4"><strong>DIEx:</strong><div th:text="${movimentacao.diex != null && !movimentacao.diex.isBlank() ? movimentacao.diex : 'Não informado'}"></div></div>
+                                        <div class="col-md-4"><strong>EB:</strong><div th:text="${movimentacao.eb != null && !movimentacao.eb.isBlank() ? movimentacao.eb : 'Não informado'}"></div></div>
+                                        <div class="col-md-4"><strong>Data da Execução:</strong><div th:text="${movimentacao.dataExecucaoAtividade != null ? #temporals.format(movimentacao.dataExecucaoAtividade, 'dd/MM/yyyy') : 'Não informado'}"></div></div>
+                                        <div class="col-md-6"><strong>Motivo:</strong><div th:text="${movimentacao.motivoRetirada != null && !movimentacao.motivoRetirada.isBlank() ? movimentacao.motivoRetirada : 'Não informado'}"></div></div>
+                                        <div class="col-md-6"><strong>Observação:</strong><div th:text="${movimentacao.observacao != null && !movimentacao.observacao.isBlank() ? movimentacao.observacao : 'Não informado'}"></div></div>
+                                    </div>
+                                    <a class="btn btn-outline-primary" th:href="@{/formularios/modelo_extensao_guarda_de_municao.docx}"><i class="bi bi-download me-2"></i>Baixar modelo DOCX</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="cabecalho-guarda">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#dados-guarda" aria-expanded="false" aria-controls="dados-guarda">Guarda de Munição</button>
+                            </h2>
+                            <div id="dados-guarda" class="accordion-collapse collapse" aria-labelledby="cabecalho-guarda" data-bs-parent="#documentos-movimentacao">
+                                <div class="accordion-body">
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-md-4"><strong>DIEx:</strong><div th:text="${movimentacao.diex != null && !movimentacao.diex.isBlank() ? movimentacao.diex : 'Não informado'}"></div></div>
+                                        <div class="col-md-4"><strong>EB:</strong><div th:text="${movimentacao.eb != null && !movimentacao.eb.isBlank() ? movimentacao.eb : 'Não informado'}"></div></div>
+                                        <div class="col-md-4"><strong>Data da Solicitação:</strong><div th:text="${movimentacao.dataSolicitacao != null ? #temporals.format(movimentacao.dataSolicitacao, 'dd/MM/yyyy') : 'Não informado'}"></div></div>
+                                        <div class="col-md-6"><strong>Paiol de Origem:</strong><div th:text="${movimentacao.paiolOrigem != null ? movimentacao.paiolOrigem.nome : 'Não informado'}"></div></div>
+                                        <div class="col-md-6"><strong>Responsável:</strong><div th:text="${movimentacao.militarPaiolRetirada != null ? movimentacao.militarPaiolRetirada.nomeCompleto : 'Não informado'}"></div></div>
+                                    </div>
+                                    <a class="btn btn-outline-primary" th:href="@{/formularios/modelo_guarda_de_municao.docx}"><i class="bi bi-download me-2"></i>Baixar modelo DOCX</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0"><div class="card-body"><form method="post" th:action="@{/movimentacoes/{id}/acao(id=${movimentacao.id})}" class="d-flex flex-wrap gap-2" onsubmit="return confirm('Confirma esta operação?')">
+        <button th:if="${movimentacao.status.name()=='SOLICITADA'}" name="acao" value="autorizar" class="btn btn-primary">Autorizar</button><button th:if="${movimentacao.status.name()=='AUTORIZADA'}" name="acao" value="separar" class="btn btn-primary">Confirmar separação</button><button th:if="${movimentacao.status.name()=='SEPARADA'}" name="acao" value="despachar" class="btn btn-primary">Despachar</button>
+        <th:block th:if="${movimentacao.status.name()=='EM_TRANSPORTE'}"><div th:each="i:${itens}"><input type="hidden" name="itemEntregaId" th:value="${i.id}"><label class="small" th:text="${i.loteMunicao.lote+' / '+i.loteMunicao.virola}"></label><input type="number" min="0" th:max="${i.quantidadeSeparada}" name="quantidadeEntregue" class="form-control" th:value="${i.quantidadeSeparada}" required></div><input name="justificativa" class="form-control" style="max-width:320px" placeholder="Justificativa se parcial"><button name="acao" value="entregar" class="btn btn-success">Confirmar entrega</button></th:block>
+        <button th:if="${movimentacao.status.name()=='SOLICITADA'||movimentacao.status.name()=='AUTORIZADA'||movimentacao.status.name()=='SEPARADA'}" name="acao" value="cancelar" class="btn btn-outline-danger">Cancelar</button></form></div></div>
+</th:block>

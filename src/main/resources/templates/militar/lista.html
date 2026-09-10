@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Militares</title>
+</head>
+<body>
+<th:block th:fragment="content">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Militares</h2><a class="btn btn-primary" th:href="@{/militares/novo}">Novo militar</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle">
+            <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Identidade</th>
+                <th>Posto/Graduação</th>
+                <th>Organização</th><th>Seção</th><th>Função</th><th>Ações</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="militar : ${militares}">
+                <td th:text="${militar.nomeCompleto}">-</td>
+                <td th:text="${militar.identidade}">-</td>
+                <td th:text="${militar.postoGraduacao.descricao}">-</td>
+                <td th:text="${militar.organizacaoMilitar != null ? militar.organizacaoMilitar.nome : '-'}">-</td>
+                <td th:text="${militar.secao}">-</td><td th:text="${militar.funcao != null ? militar.funcao.descricao : 'Função não informada'}">-</td><td><a class="btn btn-sm btn-outline-secondary" th:href="@{/militares/{id}/editar(id=${militar.id})}">Alterar</a></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</th:block>
+</body>
+</html>

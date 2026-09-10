@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head(${pageTitle ?: 'Controle de Munição'})}"></head>
+<body>
+    <div class="d-flex content-shell">
+        <aside th:replace="~{fragments/sidebar :: sidebar}"></aside>
+
+        <div class="flex-grow-1 d-flex flex-column">
+            <nav th:replace="~{fragments/navbar :: navbar}"></nav>
+
+            <main class="p-4 flex-grow-1">
+                <div th:replace="~{fragments/alerts :: alerts}"></div>
+                <th:block th:replace="~{${contentTemplate} :: content}"></th:block>
+            </main>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/sidebar :: sidebar-mobile}"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
