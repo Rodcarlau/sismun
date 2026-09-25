@@ -12,8 +12,8 @@ import java.util.List;
 @Service
 public class DevolucaoService {
     private final DevolucaoRepository devolucaoRepository; private final ItemDevolucaoRepository itemRepository;
-    private final MovimentacaoRepository movimentacaoRepository; private final ReservaEstoqueService reservaService; private final EstoqueService estoqueService; private final PaiolRepository paiolRepository;
-    public DevolucaoService(DevolucaoRepository d, ItemDevolucaoRepository i, MovimentacaoRepository m, ReservaEstoqueService r, EstoqueService e, PaiolRepository p) { devolucaoRepository=d; itemRepository=i; movimentacaoRepository=m; reservaService=r; estoqueService=e; paiolRepository=p; }
+    private final MovimentacaoRepository movimentacaoRepository; private final ReservaEstoqueService reservaService; private final EstoqueService estoqueService; private final PaiolRepository paiolRepository; private final RegistroEntregaEfetivaRepository registroEntregaRepository;
+    public DevolucaoService(DevolucaoRepository d, ItemDevolucaoRepository i, MovimentacaoRepository m, ReservaEstoqueService r, EstoqueService e, PaiolRepository p, RegistroEntregaEfetivaRepository registroEntregaRepository) { devolucaoRepository=d; itemRepository=i; movimentacaoRepository=m; reservaService=r; estoqueService=e; paiolRepository=p; this.registroEntregaRepository=registroEntregaRepository; }
 
     @Transactional
     public Devolucao registrarConsumo(Long devolucaoId, List<Long> itemIds, List<Integer> quantidades, Usuario usuario) {
@@ -22,7 +22,9 @@ public class DevolucaoService {
         for (int indice=0; indice<itemIds.size(); indice++) {
             ItemDevolucao item = item(devolucaoId, itemIds.get(indice));
             if (item.isConsumoProcessado()) throw new BusinessException("O consumo deste item já foi registrado.");
-            int quantidade = quantidades.get(indice), saldo = saldoRastreavel(item);
+            Integer informada = quantidades.get(indice);
+            if (informada == null) throw new BusinessException("A quantidade consumida é obrigatória.");
+            int quantidade = informada, saldo = saldoRastreavel(item);
             if (quantidade < 0 || quantidade > saldo) throw new BusinessException("A quantidade consumida não pode superar o saldo disponível da movimentação.");
             estoqueService.baixarConsumoEDevolucaoNoDestino(item.getItemMovimentacao(), quantidade, 0, usuario);
             item.setQuantidadeConsumida(quantidade); item.setConsumoProcessado(true);
@@ -43,12 +45,14 @@ public class DevolucaoService {
             ItemDevolucao item = item(devolucaoId, itemIds.get(indice));
             if (item.isDevolucaoProcessada()) throw new BusinessException("A devolução deste item já foi registrada.");
             if (!item.isConsumoProcessado()) throw new BusinessException("Registre o consumo antes da devolução.");
-            int quantidade = quantidades.get(indice), saldo = saldoRastreavel(item);
+            Integer informada = quantidades.get(indice);
+            if (informada == null) throw new BusinessException("A quantidade devolvida é obrigatória.");
+            int quantidade = informada, saldo = saldoRastreavel(item);
             if (quantidade < 0 || quantidade > saldo) throw new BusinessException("A quantidade devolvida não pode superar o saldo disponível da movimentação.");
             Paiol paiolDestino=paiolRepository.findById(paiolDestinoIds.get(indice)).orElseThrow(()->new ResourceNotFoundException("Paiol de devolução não encontrado."));
             estoqueService.baixarConsumoEDevolucaoNoDestino(item.getItemMovimentacao(), 0, quantidade, usuario);
             if (quantidade > 0) estoqueService.devolverParaPaiol(paiolDestino,item.getItemMovimentacao(),quantidade,usuario,d);
-            item.setQuantidadeDevolvida(quantidade); item.setPaiolDestino(paiolDestino); item.setDevolucaoProcessada(true); item.setObservacao(observacao); atualizarProcessamento(item);
+            item.setQuantidadeDevolvida(quantidade); item.setPaiolDestino(paiolDestino); item.setDevolucaoProcessada(true); item.setObservacao(observacao); item.setProcessado(item.getQuantidadeConsumida() + quantidade == quantidadeEfetiva(item.getItemMovimentacao())); item.setDataHoraProcessamentoEstoque(LocalDateTime.now());
         }
         d.setObservacao(observacao); if (anexo != null && anexo.length > 0) { d.setAnexoConteudo(anexo); d.setAnexoNome(nome); d.setAnexoTipo(tipo); }
         concluirSeCompleto(d);
@@ -65,10 +69,28 @@ public class DevolucaoService {
     private Devolucao bloquear(Long id) { return devolucaoRepository.findByIdForUpdate(id).orElseThrow(() -> new ResourceNotFoundException("Devolução não encontrada.")); }
     private ItemDevolucao item(Long devolucaoId, Long itemId) { ItemDevolucao item=itemRepository.findById(itemId).orElseThrow(() -> new ResourceNotFoundException("Item não encontrado.")); if(!item.getDevolucao().getId().equals(devolucaoId))throw new BusinessException("Item não pertence à movimentação informada."); return item; }
     private void validarListas(List<Long> ids,List<Integer> quantidades,String tipo){if(ids==null||quantidades==null||ids.isEmpty()||ids.size()!=quantidades.size())throw new BusinessException("Informe a quantidade "+tipo+" de cada material.");}
-    private int saldoRastreavel(ItemDevolucao item){return item.getItemMovimentacao().getQuantidadeEntregue()-item.getQuantidadeConsumida()-item.getQuantidadeDevolvida();}
+    private int quantidadeEfetiva(ItemMovimentacao item) {
+        List<RegistroEntregaEfetiva> registros = registroEntregaRepository.findByItemMovimentacaoIdOrderById(item.getId());
+        if (!registros.isEmpty()) return registros.stream().mapToInt(r -> r.getQuantidadeEfetiva() == null ? 0 : r.getQuantidadeEfetiva()).sum();
+        return item.getQuantidadeEntregue() == null ? 0 : item.getQuantidadeEntregue();
+    }
+    private int saldoRastreavel(ItemDevolucao item){return quantidadeEfetiva(item.getItemMovimentacao())-item.getQuantidadeConsumida()-item.getQuantidadeDevolvida();}
+    private void validarConciliacao(Devolucao d) {
+        for (ItemDevolucao item : itemRepository.findByDevolucaoId(d.getId())) {
+            int efetiva = quantidadeEfetiva(item.getItemMovimentacao());
+            int consumida = item.getQuantidadeConsumida() == null ? 0 : item.getQuantidadeConsumida();
+            int devolvida = item.getQuantidadeDevolvida() == null ? 0 : item.getQuantidadeDevolvida();
+            int saldo = efetiva - consumida - devolvida;
+            if (saldo != 0) {
+                throw new BusinessException("Movimentação não pode ser finalizada: item "
+                        + item.getItemMovimentacao().getId() + " possui saldo documental pendente de " + saldo + ".");
+            }
+        }
+    }
     private void atualizarProcessamento(ItemDevolucao item){item.setProcessado(item.isConsumoProcessado()&&item.isDevolucaoProcessada());item.setDataHoraProcessamentoEstoque(LocalDateTime.now());}
     private void concluirSeCompleto(Devolucao d){
         if(itemRepository.findByDevolucaoId(d.getId()).stream().allMatch(ItemDevolucao::isProcessado)){
+            validarConciliacao(d);
             d.setStatus("FINALIZADA"); d.getMovimentacao().setStatus(StatusMovimentacao.FINALIZADA);
             d.getMovimentacao().setDataHoraUltimaAlteracao(LocalDateTime.now()); movimentacaoRepository.save(d.getMovimentacao());
         }
@@ -84,14 +106,17 @@ public class DevolucaoService {
             ItemDevolucao item = itemRepository.findById(itemIds.get(indice)).orElseThrow(() -> new ResourceNotFoundException("Item de devolução não encontrado."));
             if (!item.getDevolucao().getId().equals(devolucaoId)) throw new BusinessException("Item não pertence à devolução.");
             if (item.isProcessado()) continue;
-            int entregue = item.getItemMovimentacao().getQuantidadeEntregue(), consumida = quantidadesConsumidas.get(indice), devolvida = quantidadesDevolvidas.get(indice);
+            Integer informadaConsumida = quantidadesConsumidas.get(indice);
+            Integer informadaDevolvida = quantidadesDevolvidas.get(indice);
+            if (informadaConsumida == null || informadaDevolvida == null) throw new BusinessException("As quantidades consumida e devolvida são obrigatórias.");
+            int entregue = quantidadeEfetiva(item.getItemMovimentacao()), consumida = informadaConsumida, devolvida = informadaDevolvida;
             if (consumida < 0 || devolvida < 0 || consumida + devolvida > entregue) throw new BusinessException("A soma consumida e devolvida não pode superar a quantidade entregue.");
             item.setQuantidadeDevolvida(devolvida); item.setQuantidadeConsumida(consumida); item.setQuantidadeEstojo(0); item.setObservacao(observacao);
             estoqueService.baixarConsumoEDevolucaoNoDestino(item.getItemMovimentacao(), consumida, devolvida, usuario);
-            reservaService.devolver(item.getItemMovimentacao(), devolvida, usuario, d); item.setConsumoProcessado(true); item.setDevolucaoProcessada(true); item.setProcessado(true); item.setDataHoraProcessamentoEstoque(LocalDateTime.now());
+            reservaService.devolver(item.getItemMovimentacao(), devolvida, usuario, d); item.setConsumoProcessado(true); item.setDevolucaoProcessada(consumida + devolvida == entregue); item.setProcessado(item.isDevolucaoProcessada()); item.setDataHoraProcessamentoEstoque(LocalDateTime.now());
         }
         d.setObservacao(observacao); if (anexo != null && anexo.length > 0) { d.setAnexoConteudo(anexo); d.setAnexoNome(nome); d.setAnexoTipo(tipo); }
-        d.setStatus("FINALIZADA"); d.getMovimentacao().setStatus(StatusMovimentacao.FINALIZADA); d.getMovimentacao().setDataHoraUltimaAlteracao(LocalDateTime.now()); movimentacaoRepository.save(d.getMovimentacao());
+        concluirSeCompleto(d);
         return devolucaoRepository.save(d);
     }
 
@@ -102,7 +127,7 @@ public class DevolucaoService {
         List<ItemDevolucao> itens = itemRepository.findByDevolucaoId(devolucaoId);
         List<Integer> consumidas = itemIds.stream().map(id -> {
             ItemDevolucao item = itens.stream().filter(i -> i.getId().equals(id)).findFirst().orElseThrow(() -> new ResourceNotFoundException("Item de devolução não encontrado."));
-            return item.getItemMovimentacao().getQuantidadeEntregue() - quantidadesDevolvidas.get(itemIds.indexOf(id));
+            return quantidadeEfetiva(item.getItemMovimentacao()) - quantidadesDevolvidas.get(itemIds.indexOf(id));
         }).toList();
         return registrarQuantidades(d.getId(), itemIds, consumidas, quantidadesDevolvidas, anexo, nome, tipo, observacao, usuario);
     }
@@ -115,14 +140,14 @@ public class DevolucaoService {
         ItemDevolucao item = itemRepository.findById(form.itemDevolucaoId()).orElseThrow(() -> new ResourceNotFoundException("Item de devolução não encontrado."));
         if (!item.getDevolucao().getId().equals(devolucaoId)) throw new BusinessException("Item não pertence à devolução.");
         if (item.isProcessado()) return d;
-        int entregue = item.getItemMovimentacao().getQuantidadeEntregue();
+        int entregue = quantidadeEfetiva(item.getItemMovimentacao());
         if (form.quantidadeConsumida() < 0 || form.quantidadeDevolvida() < 0 || form.quantidadeDevolvida() > entregue || form.quantidadeConsumida() + form.quantidadeDevolvida() > entregue) throw new BusinessException("Quantidades de devolução inválidas para o total entregue.");
         if (form.quantidadeConsumida() + form.quantidadeDevolvida() != entregue && (form.justificativa() == null || form.justificativa().isBlank())) throw new BusinessException("Justificativa administrativa é obrigatória quando a prestação não fecha a quantidade entregue.");
         item.setQuantidadeConsumida(form.quantidadeConsumida()); item.setQuantidadeDevolvida(form.quantidadeDevolvida()); item.setQuantidadeEstojo(form.quantidadeEstojo()); item.setJustificativa(form.justificativa()); item.setObservacao(form.observacao());
         estoqueService.baixarConsumoEDevolucaoNoDestino(item.getItemMovimentacao(), form.quantidadeConsumida(), form.quantidadeDevolvida(), usuario);
-        reservaService.devolver(item.getItemMovimentacao(), form.quantidadeDevolvida(), usuario, d); item.setConsumoProcessado(true); item.setDevolucaoProcessada(true); item.setProcessado(true); item.setDataHoraProcessamentoEstoque(LocalDateTime.now());
+        reservaService.devolver(item.getItemMovimentacao(), form.quantidadeDevolvida(), usuario, d); item.setConsumoProcessado(true); item.setDevolucaoProcessada(form.quantidadeConsumida() + form.quantidadeDevolvida() == entregue); item.setProcessado(item.isDevolucaoProcessada()); item.setDataHoraProcessamentoEstoque(LocalDateTime.now());
         d.setObservacao(form.observacao()); if (anexo != null && anexo.length > 0) { d.setAnexoConteudo(anexo); d.setAnexoNome(nome); d.setAnexoTipo(tipo); }
-        d.setStatus("FINALIZADA"); d.getMovimentacao().setStatus(StatusMovimentacao.FINALIZADA); d.getMovimentacao().setDataHoraUltimaAlteracao(LocalDateTime.now()); movimentacaoRepository.save(d.getMovimentacao());
+        concluirSeCompleto(d);
         return devolucaoRepository.save(d);
     }
 }

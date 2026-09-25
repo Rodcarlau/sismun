@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"><body>
+<div th:fragment="content" class="documentation flow-viewer" th:attr="data-flow=${fluxo.menu.id}">
+  <header class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+    <div><div class="text-uppercase small text-primary fw-bold">Documentação / Fluxogramas por Menu</div><h1 th:text="${'Fluxograma — ' + fluxo.menu.nome}"></h1><p class="text-secondary">Swimlane baseado nos controllers, services, repositories e templates atuais.</p></div>
+    <div class="d-flex flex-wrap gap-2 doc-print"><a class="btn btn-outline-secondary" th:href="@{/documentacao#fluxogramas-menu}">Voltar</a><a class="btn btn-outline-primary" th:href="@{/documentacao/fluxogramas/{id}.svg(id=${fluxo.menu.id})}" download>Baixar SVG</a><a class="btn btn-primary" th:href="@{/documentacao/fluxogramas/{id}.pdf(id=${fluxo.menu.id})}">Baixar PDF</a></div>
+  </header>
+  <div class="flow-toolbar doc-print" role="toolbar" aria-label="Controles do fluxograma"><button type="button" data-action="minus" title="Diminuir">−</button><output id="flow-zoom">100%</output><button type="button" data-action="plus" title="Aumentar">+</button><button type="button" data-action="fit">Ajustar</button><button type="button" data-action="fullscreen">Tela cheia</button><button type="button" onclick="window.print()">Imprimir</button></div>
+  <div id="flow-stage" class="flow-stage"><img id="flow-image" th:src="@{/documentacao/fluxogramas/{id}.svg(id=${fluxo.menu.id})}" th:alt="${'Fluxograma do menu ' + fluxo.menu.nome}"></div>
+  <section class="doc-panel flow-legend"><h2>Legenda</h2><span>▭ Processo / ação</span><span>◇ Decisão</span><span>👤 Ação humana</span><span>⚙ Processamento interno</span><span>▱ Documento</span><span>→ Sequência</span><span>Sim / Não = decisão</span></section>
+  <section class="doc-panel"><h2>Rastreabilidade</h2><p th:text="${fluxo.fonte}"></p><p><strong>Rota do menu:</strong> <code th:text="${fluxo.menu.rota}"></code></p></section>
+  <script th:src="@{/js/documentacao/fluxograma.js}"></script>
+</div></body></html>

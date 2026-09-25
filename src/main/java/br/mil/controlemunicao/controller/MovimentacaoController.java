@@ -2,7 +2,9 @@ package br.mil.controlemunicao.controller;
 
 import br.mil.controlemunicao.entity.Movimentacao;
 import br.mil.controlemunicao.entity.StatusMovimentacao;
+import br.mil.controlemunicao.entity.RegistroEntregaEfetiva;
 import br.mil.controlemunicao.entity.ItemDevolucao;
+import br.mil.controlemunicao.entity.ItemMovimentacao;
 import br.mil.controlemunicao.entity.Usuario;
 import br.mil.controlemunicao.repository.MovimentacaoRepository;
 import br.mil.controlemunicao.repository.MilitarRepository;
@@ -29,6 +31,8 @@ import java.time.Year;
 import java.util.List;
 import org.springframework.security.core.Authentication;
 import br.mil.controlemunicao.repository.UsuarioRepository;
+import br.mil.controlemunicao.repository.LoteMunicaoRepository;
+import br.mil.controlemunicao.repository.RegistroEntregaEfetivaRepository;
 
 @Controller
 @RequestMapping("/movimentacoes")
@@ -45,13 +49,15 @@ public class MovimentacaoController {
     private final ReservaEstoqueRepository reservaEstoqueRepository;
     private final ItemDevolucaoRepository itemDevolucaoRepository;
     private final UsuarioRepository usuarioRepository;
+    private final LoteMunicaoRepository loteMunicaoRepository;
+    private final RegistroEntregaEfetivaRepository registroEntregaEfetivaRepository;
 
     public MovimentacaoController(MovimentacaoRepository movimentacaoRepository,
                                   MovimentacaoService movimentacaoService,
                                   OrganizacaoMilitarRepository organizacaoMilitarRepository,
                                   PaiolRepository paiolRepository,
                                   MilitarRepository militarRepository, TipoMunicaoRepository tipoMunicaoRepository,
-                                  ViaturaRepository viaturaRepository, EstoquePaiolRepository estoquePaiolRepository, ReservaEstoqueRepository reservaEstoqueRepository, ItemDevolucaoRepository itemDevolucaoRepository, UsuarioRepository usuarioRepository) {
+                                  ViaturaRepository viaturaRepository, EstoquePaiolRepository estoquePaiolRepository, ReservaEstoqueRepository reservaEstoqueRepository, ItemDevolucaoRepository itemDevolucaoRepository, UsuarioRepository usuarioRepository, LoteMunicaoRepository loteMunicaoRepository, RegistroEntregaEfetivaRepository registroEntregaEfetivaRepository) {
         this.movimentacaoRepository = movimentacaoRepository;
         this.movimentacaoService = movimentacaoService;
         this.organizacaoMilitarRepository = organizacaoMilitarRepository;
@@ -63,6 +69,8 @@ public class MovimentacaoController {
         this.reservaEstoqueRepository = reservaEstoqueRepository;
         this.itemDevolucaoRepository = itemDevolucaoRepository;
         this.usuarioRepository=usuarioRepository;
+        this.loteMunicaoRepository = loteMunicaoRepository;
+        this.registroEntregaEfetivaRepository = registroEntregaEfetivaRepository;
     }
 
     @GetMapping
@@ -136,22 +144,43 @@ public class MovimentacaoController {
     public String detalhes(@PathVariable Long id, Model model) {
         Movimentacao movimentacao=movimentacaoService.buscarPorId(id);
         var prestacoes=itemDevolucaoRepository.findByItemMovimentacaoMovimentacaoId(id);
+        var registrosEfetivos = registroEntregaEfetivaRepository.findByItemMovimentacaoMovimentacaoIdOrderById(id);
         model.addAttribute("movimentacao", movimentacao); model.addAttribute("camposPendentesAceite", movimentacaoService.camposPendentesParaAceite(movimentacao)); model.addAttribute("itens", movimentacaoService.itens(id));
         model.addAttribute("consumidoPorItem",prestacoes.stream().collect(java.util.stream.Collectors.toMap(d->d.getItemMovimentacao().getId(),ItemDevolucao::getQuantidadeConsumida)));
         model.addAttribute("devolvidoPorItem",prestacoes.stream().collect(java.util.stream.Collectors.toMap(d->d.getItemMovimentacao().getId(),ItemDevolucao::getQuantidadeDevolvida)));
+        var efetivoPorItem = registrosEfetivos.stream().collect(java.util.stream.Collectors.groupingBy(r -> r.getItemMovimentacao().getId(), java.util.stream.Collectors.summingInt(r -> r.getQuantidadeEfetiva() == null ? 0 : r.getQuantidadeEfetiva())));
+        var consumidoPorItem = prestacoes.stream().collect(java.util.stream.Collectors.toMap(d -> d.getItemMovimentacao().getId(), d -> d.getQuantidadeConsumida() == null ? 0 : d.getQuantidadeConsumida()));
+        var devolvidoPorItem = prestacoes.stream().collect(java.util.stream.Collectors.toMap(d -> d.getItemMovimentacao().getId(), d -> d.getQuantidadeDevolvida() == null ? 0 : d.getQuantidadeDevolvida()));
+        model.addAttribute("efetivoPorItem", efetivoPorItem);
+        var saldoDocumentalPorItem = movimentacaoService.itens(id).stream().collect(java.util.stream.Collectors.toMap(ItemMovimentacao::getId, item -> {
+            int efetiva = efetivoPorItem.getOrDefault(item.getId(), item.getQuantidadeEntregue() == null ? 0 : item.getQuantidadeEntregue());
+            return efetiva - consumidoPorItem.getOrDefault(item.getId(), 0) - devolvidoPorItem.getOrDefault(item.getId(), 0);
+        }));
+        model.addAttribute("saldoDocumentalPorItem", saldoDocumentalPorItem);
+        model.addAttribute("situacaoConciliacaoPorItem", saldoDocumentalPorItem.entrySet().stream()
+                .collect(java.util.stream.Collectors.toMap(java.util.Map.Entry::getKey, e -> e.getValue() == 0 ? "CONCILIADA" : "PENDENTE")));
+        model.addAttribute("justificativaPorItem", registrosEfetivos.stream()
+                .filter(r -> r.getJustificativa() != null && !r.getJustificativa().isBlank())
+                .collect(java.util.stream.Collectors.groupingBy(r -> r.getItemMovimentacao().getId(),
+                        java.util.stream.Collectors.mapping(RegistroEntregaEfetiva::getJustificativa,
+                                java.util.stream.Collectors.joining(" | ")))));
         model.addAttribute("origemPorItem",reservaEstoqueRepository.findByItemMovimentacaoMovimentacaoId(id).stream().collect(java.util.stream.Collectors.toMap(r->r.getItemMovimentacao().getId(),r->r.getEstoque().getPaiol().getNome())));
+        model.addAttribute("registrosEfetivos", registrosEfetivos);
+        model.addAttribute("registrosEfetivosPorItem", registrosEfetivos.stream().collect(java.util.stream.Collectors.groupingBy(r -> r.getItemMovimentacao().getId())));
+        model.addAttribute("quantidadesReservadasPorItem", registrosEfetivos.stream().collect(java.util.stream.Collectors.toMap(r -> r.getItemMovimentacao().getId(), RegistroEntregaEfetiva::getQuantidadeReservada, (primeira, segunda) -> primeira)));
+        model.addAttribute("lotesEfetivos", loteMunicaoRepository.findAll());
         return "movimentacao/detalhes";
     }
 
     @PostMapping("/{id}/acao")
-    public String acao(@PathVariable Long id, @RequestParam String acao, @RequestParam(required=false) List<Long> itemEntregaId, @RequestParam(required=false) List<Integer> quantidadeEntregue,
+    public String acao(@PathVariable Long id, @RequestParam String acao, @RequestParam(required=false) List<Long> itemEntregaId, @RequestParam(required=false) List<Integer> quantidadeEfetiva, @RequestParam(required=false) List<Long> loteEfetivoId,
                        @RequestParam(required = false) String justificativa, RedirectAttributes redirectAttributes, Authentication auth) {
         Usuario usuario=usuarioRepository.findByUsername(auth.getName()).orElse(null);
         switch (acao) {
             case "autorizar" -> movimentacaoService.autorizar(id, usuario);
             case "separar" -> movimentacaoService.confirmarSeparacao(id, usuario);
             case "despachar" -> movimentacaoService.despachar(id, usuario);
-            case "entregar" -> movimentacaoService.confirmarEntregaItens(id, itemEntregaId, quantidadeEntregue, justificativa, usuario);
+            case "entregar" -> movimentacaoService.confirmarEntregaItens(id, itemEntregaId, quantidadeEfetiva, loteEfetivoId, justificativa, usuario);
             case "cancelar" -> movimentacaoService.cancelar(id, usuario);
             default -> throw new IllegalArgumentException("Ação inválida.");
         }

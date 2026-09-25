@@ -99,8 +99,10 @@ public class ReservaEstoqueService {
         item.setQuantidadeEntregue(quantidadeEntregue); item.setQuantidadeReservada(0); item.setJustificativa(justificativa);
         reserva.setQuantidadeConsumida(quantidadeEntregue); reserva.setQuantidadeLiberada(liberada);
         reserva.setSituacao(SituacaoReserva.CONSUMIDA); reserva.setDataHoraBaixa(LocalDateTime.now()); reserva.setUsuarioResponsavel(usuario);
-        registrar(estoque, item, TipoMovimentacaoEstoque.SAIDA, quantidadeEntregue, fisicoAnterior, estoque.getQuantidadeAtual(), reservadoAnterior,
-            reservadoAnterior - quantidadeEntregue, StatusMovimentacao.EM_TRANSPORTE, StatusMovimentacao.ENTREGUE, usuario, "Baixa após entrega");
+        if (quantidadeEntregue > 0) {
+            registrar(estoque, item, TipoMovimentacaoEstoque.SAIDA, quantidadeEntregue, fisicoAnterior, estoque.getQuantidadeAtual(), reservadoAnterior,
+                reservadoAnterior - quantidadeEntregue, StatusMovimentacao.EM_TRANSPORTE, StatusMovimentacao.ENTREGUE, usuario, "Baixa após entrega");
+        }
         if (liberada > 0) registrar(estoque, item, TipoMovimentacaoEstoque.LIBERACAO_RESERVA, liberada,
             estoque.getQuantidadeAtual(), estoque.getQuantidadeAtual(), reservadoAnterior - quantidadeEntregue, estoque.getQuantidadeReservada(),
             StatusMovimentacao.EM_TRANSPORTE, StatusMovimentacao.ENTREGUE, usuario, justificativa);

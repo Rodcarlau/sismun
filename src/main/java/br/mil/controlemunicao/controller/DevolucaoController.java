@@ -30,14 +30,16 @@ public class DevolucaoController {
     private final UsuarioRepository usuarioRepository;
     private final br.mil.controlemunicao.repository.PaiolRepository paiolRepository;
     private final br.mil.controlemunicao.repository.ReservaEstoqueRepository reservaEstoqueRepository;
+    private final br.mil.controlemunicao.repository.RegistroEntregaEfetivaRepository registroEntregaRepository;
 
-    public DevolucaoController(DevolucaoRepository devolucaoRepository, MovimentacaoRepository movimentacaoRepository, ItemDevolucaoRepository itemDevolucaoRepository, DevolucaoService devolucaoService, UsuarioRepository usuarioRepository, br.mil.controlemunicao.repository.PaiolRepository paiolRepository, br.mil.controlemunicao.repository.ReservaEstoqueRepository reservaEstoqueRepository) {
+    public DevolucaoController(DevolucaoRepository devolucaoRepository, MovimentacaoRepository movimentacaoRepository, ItemDevolucaoRepository itemDevolucaoRepository, DevolucaoService devolucaoService, UsuarioRepository usuarioRepository, br.mil.controlemunicao.repository.PaiolRepository paiolRepository, br.mil.controlemunicao.repository.ReservaEstoqueRepository reservaEstoqueRepository, br.mil.controlemunicao.repository.RegistroEntregaEfetivaRepository registroEntregaRepository) {
         this.devolucaoRepository = devolucaoRepository;
         this.movimentacaoRepository = movimentacaoRepository;
         this.itemDevolucaoRepository = itemDevolucaoRepository; this.devolucaoService = devolucaoService;
         this.usuarioRepository=usuarioRepository;
         this.paiolRepository=paiolRepository;
         this.reservaEstoqueRepository=reservaEstoqueRepository;
+        this.registroEntregaRepository=registroEntregaRepository;
     }
 
     @GetMapping
@@ -51,6 +53,12 @@ public class DevolucaoController {
         model.addAttribute("devolucoes", devolucoes);
         model.addAttribute("itensPorDevolucao", itensPorDevolucao);
         model.addAttribute("paiolOrigemPorItem", paiolOrigemPorItem);
+        var efetivoPorItem = itensPorDevolucao.values().stream().flatMap(java.util.Collection::stream)
+                .collect(java.util.stream.Collectors.toMap(i -> i.getItemMovimentacao().getId(),
+                        i -> registroEntregaRepository.findByItemMovimentacaoIdOrderById(i.getItemMovimentacao().getId()).stream()
+                                .mapToInt(r -> r.getQuantidadeEfetiva() == null ? 0 : r.getQuantidadeEfetiva()).sum(),
+                        (primeiro, segundo) -> primeiro));
+        model.addAttribute("efetivoPorItem", efetivoPorItem);
         model.addAttribute("paiols", paiolRepository.findAll());
         return "devolucao/lista-abas";
     }

@@ -22,11 +22,14 @@ public class MovimentacaoService {
     private final MilitarRepository militarRepository;
     private final PaiolRepository paiolRepository;
     private final EstoqueService estoqueService;
+    private final RegistroEntregaEfetivaRepository registroEntregaRepository;
+    private final LoteMunicaoRepository loteMunicaoRepository;
 
     public MovimentacaoService(MovimentacaoRepository movimentacaoRepository, ItemMovimentacaoRepository itemRepository,
         EstoquePaiolRepository estoqueRepository, ReservaEstoqueService reservaService, DevolucaoRepository devolucaoRepository,
         ItemDevolucaoRepository itemDevolucaoRepository, ReservaEstoqueRepository reservaRepository, MovimentacaoEstoqueRepository historicoRepository,
-        MilitarRepository militarRepository, PaiolRepository paiolRepository, EstoqueService estoqueService) {
+        MilitarRepository militarRepository, PaiolRepository paiolRepository, EstoqueService estoqueService,
+        RegistroEntregaEfetivaRepository registroEntregaRepository, LoteMunicaoRepository loteMunicaoRepository) {
         this.movimentacaoRepository = movimentacaoRepository; this.itemRepository = itemRepository; this.estoqueRepository = estoqueRepository;
         this.reservaService = reservaService; this.devolucaoRepository = devolucaoRepository; this.itemDevolucaoRepository = itemDevolucaoRepository;
         this.reservaRepository = reservaRepository;
@@ -34,6 +37,8 @@ public class MovimentacaoService {
         this.militarRepository = militarRepository;
         this.paiolRepository = paiolRepository;
         this.estoqueService = estoqueService;
+        this.registroEntregaRepository = registroEntregaRepository;
+        this.loteMunicaoRepository = loteMunicaoRepository;
     }
 
     @Transactional
@@ -122,10 +127,80 @@ public class MovimentacaoService {
 
     @Transactional
     public Movimentacao confirmarEntregaItens(Long id, List<Long> itemIds, List<Integer> quantidadesEntregues, String justificativa, Usuario usuario) {
+        return confirmarEntregaItens(id, itemIds, quantidadesEntregues, null, justificativa, usuario);
+    }
+
+    @Transactional
+    public Movimentacao confirmarEntregaItens(Long id, List<Long> itemIds, List<Integer> quantidadesEntregues,
+                                              List<Long> lotesEfetivos, String justificativa, Usuario usuario) {
         Movimentacao m = movimentacaoRepository.findByIdForUpdate(id).orElseThrow(() -> new ResourceNotFoundException("Movimentação não encontrada.")); exigirStatus(m, StatusMovimentacao.EM_TRANSPORTE); List<ItemMovimentacao> lista = itens(id);
-        if(itemIds==null||quantidadesEntregues==null||itemIds.size()!=lista.size()||itemIds.size()!=quantidadesEntregues.size())throw new BusinessException("Informe a quantidade entregue de cada item.");
-        Map<Long,Integer> porItem=new HashMap<>();for(int x=0;x<itemIds.size();x++)porItem.put(itemIds.get(x),quantidadesEntregues.get(x));
-        for(ItemMovimentacao item:lista){Integer q=porItem.get(item.getId());if(q==null)throw new BusinessException("Quantidade entregue não informada para um item.");reservaService.entregar(item,q,justificativa,usuario);if(m.getPaiolDestino()!=null)estoqueService.receberTransferencia(m.getPaiolDestino(),item,q,usuario);}
+        if (itemIds == null || quantidadesEntregues == null || itemIds.isEmpty()
+                || itemIds.size() != quantidadesEntregues.size()
+                || (lotesEfetivos != null && itemIds.size() != lotesEfetivos.size())) {
+            throw new BusinessException("Informe todos os registros efetivos da entrega.");
+        }
+
+        Map<Long, ItemMovimentacao> itensPorId = new HashMap<>();
+        for (ItemMovimentacao item : lista) itensPorId.put(item.getId(), item);
+        Map<Long, Integer> quantidadeOriginalPorItem = new HashMap<>();
+        Set<String> combinacoes = new HashSet<>();
+        List<RegistroEntregaEfetiva> registros = new ArrayList<>();
+        boolean divergencia = false;
+
+        for (int x = 0; x < itemIds.size(); x++) {
+            Long itemId = itemIds.get(x);
+            Integer quantidade = quantidadesEntregues.get(x);
+            if (itemId == null || quantidade == null || quantidade < 0) {
+                throw new BusinessException("Quantidade efetiva inválida.");
+            }
+            ItemMovimentacao item = itensPorId.get(itemId);
+            if (item == null) throw new BusinessException("Item efetivo não pertence à movimentação.");
+
+            Long loteId = lotesEfetivos == null ? item.getLoteMunicao().getId() : lotesEfetivos.get(x);
+            if (loteId == null) throw new BusinessException("Lote efetivo é obrigatório.");
+            LoteMunicao loteEfetivo = loteMunicaoRepository.findById(loteId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Lote efetivo não encontrado."));
+            String combinacao = itemId + ":" + loteId;
+            if (!combinacoes.add(combinacao)) {
+                throw new BusinessException("Não repita a combinação de item, lote e virola.");
+            }
+
+            boolean loteOriginal = Objects.equals(loteEfetivo.getId(), item.getLoteMunicao().getId());
+            if (loteOriginal) {
+                if (quantidadeOriginalPorItem.put(itemId, quantidade) != null) {
+                    throw new BusinessException("Informe apenas uma linha para o lote originalmente previsto.");
+                }
+                if (!Objects.equals(quantidade, item.getQuantidadeSeparada())) divergencia = true;
+            } else {
+                divergencia = true;
+            }
+
+            RegistroEntregaEfetiva registro = new RegistroEntregaEfetiva();
+            registro.setItemMovimentacao(item);
+            registro.setLoteMunicao(loteEfetivo);
+            registro.setQuantidadeEfetiva(quantidade);
+            registro.setQuantidadeReservada(item.getQuantidadeReservada());
+            registro.setQuantidadeSeparada(item.getQuantidadeSeparada());
+            registro.setJustificativa(justificativa);
+            registro.setUsuarioResponsavel(usuario);
+            registros.add(registro);
+        }
+
+        for (ItemMovimentacao item : lista) {
+            if (!quantidadeOriginalPorItem.containsKey(item.getId())) {
+                throw new BusinessException("Informe a linha do lote originalmente previsto para cada item.");
+            }
+        }
+        if (divergencia && (justificativa == null || justificativa.isBlank())) {
+            throw new BusinessException("Justificativa é obrigatória para divergência na entrega.");
+        }
+
+        registroEntregaRepository.saveAll(registros);
+        for (ItemMovimentacao item : lista) {
+            int quantidadeOriginal = quantidadeOriginalPorItem.get(item.getId());
+            reservaService.entregar(item, quantidadeOriginal, justificativa, usuario);
+            if (m.getPaiolDestino() != null) estoqueService.receberTransferencia(m.getPaiolDestino(), item, quantidadeOriginal, usuario);
+        }
         mudarStatus(m, StatusMovimentacao.ENTREGUE, usuario);
         Devolucao devolucao = devolucaoRepository.findByMovimentacaoId(id).orElseGet(() -> { Devolucao d = new Devolucao(); d.setMovimentacao(m); d.setDataDevolucao(LocalDate.now()); return devolucaoRepository.save(d); });
         if (itemDevolucaoRepository.findByDevolucaoId(devolucao.getId()).isEmpty()) for (ItemMovimentacao item : lista) { ItemDevolucao di = new ItemDevolucao(); di.setDevolucao(devolucao); di.setItemMovimentacao(item); di.setQuantidadeConsumida(0); di.setQuantidadeDevolvida(0); di.setQuantidadeEstojo(0); itemDevolucaoRepository.save(di); }

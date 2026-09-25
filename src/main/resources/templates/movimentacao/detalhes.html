@@ -107,10 +107,12 @@
                                 <th>Calibre</th>
                                 <th>Lote</th>
                                 <th>Virola</th>
-                                <th>Solicitada</th>
-                                <th>Reservada</th>
-                                <th>Entregue</th>
+                                <th>PREVISTO<br>Solicitada</th>
+                                <th>PREVISTO<br>Reservada</th>
+                                <th>Efetiva</th>
+                                <th>Consumida</th>
                                 <th>Devolvida</th>
+                                <th>Saldo</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -120,12 +122,52 @@
                                 <td th:text="${i.loteMunicao != null ? i.loteMunicao.lote : 'Não informado'}"></td>
                                 <td th:text="${i.loteMunicao != null ? i.loteMunicao.virola : 'Não informado'}"></td>
                                 <td th:text="${i.quantidadeSolicitada != null ? i.quantidadeSolicitada : 0}"></td>
-                                <td th:text="${i.quantidadeReservada != null ? i.quantidadeReservada : 0}"></td>
-                                <td th:text="${i.quantidadeEntregue != null ? i.quantidadeEntregue : 0}"></td>
+                                <td th:text="${quantidadesReservadasPorItem[i.id] != null ? quantidadesReservadasPorItem[i.id] : (i.quantidadeReservada != null ? i.quantidadeReservada : 0)}"></td>
+                                <td th:text="${efetivoPorItem[i.id] != null ? efetivoPorItem[i.id] : (i.quantidadeEntregue != null ? i.quantidadeEntregue : 0)}"></td>
+                                <td th:text="${consumidoPorItem[i.id] != null ? consumidoPorItem[i.id] : 0}"></td>
                                 <td th:text="${devolvidoPorItem[i.id] != null ? devolvidoPorItem[i.id] : 0}"></td>
+                                <td th:text="${saldoDocumentalPorItem[i.id] != null ? saldoDocumentalPorItem[i.id] : 0}"></td>
                             </tr>
                             </tbody>
                         </table>
+                    </div>
+                    <div class="small text-muted mt-2" th:each="i:${itens}">
+                        <strong th:text="${'Registros efetivos de ' + i.loteMunicao.lote + ': '}"></strong>
+                        <span th:if="${registrosEfetivosPorItem[i.id] == null}">Não informado</span>
+                        <span th:each="registro, iter : ${registrosEfetivosPorItem[i.id]}">
+                            <span th:text="${registro.loteMunicao.municao.tipoMunicao.nome + ' / ' + registro.loteMunicao.lote + ' / ' + (registro.loteMunicao.virola != null ? registro.loteMunicao.virola : '-') + ' / ' + registro.quantidadeEfetiva}"></span>
+                            <span th:if="${registro.quantidadeEfetiva != i.quantidadeSeparada || registro.loteMunicao.id != i.loteMunicao.id}" class="badge bg-warning text-dark ms-1">Divergência registrada</span>
+                            <span th:if="${!iter.last}"><br></span>
+                        </span>
+                        <span th:if="${justificativaPorItem[i.id] != null}" class="d-block">Justificativa: <span th:text="${justificativaPorItem[i.id]}"></span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="card page-card border-0 mb-3">
+                <div class="card-body">
+                    <h5 class="mb-3">Conciliação da Movimentação</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead><tr><th>Item</th><th>Solicitada</th><th>Reservada</th><th>Efetiva</th><th>Consumida</th><th>Devolvida</th><th>Saldo</th><th>Situação</th></tr></thead>
+                            <tbody>
+                            <tr th:each="i:${itens}">
+                                <td th:text="${i.loteMunicao.lote + ' / ' + (i.loteMunicao.virola != null ? i.loteMunicao.virola : '-')}"></td>
+                                <td th:text="${i.quantidadeSolicitada != null ? i.quantidadeSolicitada : 0}"></td>
+                                <td th:text="${quantidadesReservadasPorItem[i.id] != null ? quantidadesReservadasPorItem[i.id] : (i.quantidadeReservada != null ? i.quantidadeReservada : 0)}"></td>
+                                <td th:text="${efetivoPorItem[i.id] != null ? efetivoPorItem[i.id] : (i.quantidadeEntregue != null ? i.quantidadeEntregue : 0)}"></td>
+                                <td th:text="${consumidoPorItem[i.id] != null ? consumidoPorItem[i.id] : 0}"></td>
+                                <td th:text="${devolvidoPorItem[i.id] != null ? devolvidoPorItem[i.id] : 0}"></td>
+                                <td th:text="${saldoDocumentalPorItem[i.id] != null ? saldoDocumentalPorItem[i.id] : 0}"></td>
+                                <td><span class="badge" th:classappend="${situacaoConciliacaoPorItem[i.id] == 'CONCILIADA' ? 'bg-success' : 'bg-warning text-dark'}" th:text="${situacaoConciliacaoPorItem[i.id]}"></span></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div th:each="i:${itens}" th:if="${justificativaPorItem[i.id] != null}" class="small text-muted">
+                        Justificativa: <span th:text="${justificativaPorItem[i.id]}"></span>
                     </div>
                 </div>
             </div>
@@ -248,6 +290,32 @@
 
     <div class="card border-0"><div class="card-body"><form method="post" th:action="@{/movimentacoes/{id}/acao(id=${movimentacao.id})}" class="d-flex flex-wrap gap-2" onsubmit="return confirm('Confirma esta operação?')">
         <button th:if="${movimentacao.status.name()=='SOLICITADA'}" name="acao" value="autorizar" class="btn btn-primary">Autorizar</button><button th:if="${movimentacao.status.name()=='AUTORIZADA'}" name="acao" value="separar" class="btn btn-primary">Confirmar separação</button><button th:if="${movimentacao.status.name()=='SEPARADA'}" name="acao" value="despachar" class="btn btn-primary">Despachar</button>
-        <th:block th:if="${movimentacao.status.name()=='EM_TRANSPORTE'}"><div th:each="i:${itens}"><input type="hidden" name="itemEntregaId" th:value="${i.id}"><label class="small" th:text="${i.loteMunicao.lote+' / '+i.loteMunicao.virola}"></label><input type="number" min="0" th:max="${i.quantidadeSeparada}" name="quantidadeEntregue" class="form-control" th:value="${i.quantidadeSeparada}" required></div><input name="justificativa" class="form-control" style="max-width:320px" placeholder="Justificativa se parcial"><button name="acao" value="entregar" class="btn btn-success">Confirmar entrega</button></th:block>
+        <th:block th:if="${movimentacao.status.name()=='EM_TRANSPORTE'}">
+            <div id="entrega-efetiva-linhas">
+                <div th:each="i:${itens}" class="entrega-efetiva-linha border rounded p-2 mb-2" th:attr="data-item-id=${i.id}">
+                    <div class="small fw-semibold mb-2" th:text="${'Previsto: ' + i.loteMunicao.municao.tipoMunicao.nome + ' / ' + i.loteMunicao.lote + ' / ' + (i.loteMunicao.virola != null ? i.loteMunicao.virola : '-') + ' / Reservado: ' + i.quantidadeReservada + ' / Separado: ' + i.quantidadeSeparada}"></div>
+                    <input type="hidden" name="itemEntregaId" th:value="${i.id}">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-6"><label class="form-label small">Lote/virola efetivo</label><select name="loteEfetivoId" class="form-select lote-efetivo" required><option th:each="lote : ${lotesEfetivos}" th:value="${lote.id}" th:selected="${lote.id == i.loteMunicao.id}" th:text="${lote.municao.tipoMunicao.nome + ' / ' + lote.lote + ' / Virola: ' + (lote.virola != null ? lote.virola : '-')}"></option></select></div>
+                        <div class="col-md-4"><label class="form-label small">Efetivo</label><input type="number" min="0" name="quantidadeEfetiva" class="form-control quantidade-efetiva" th:value="${i.quantidadeSeparada}" required></div>
+                        <div class="col-md-2"><button type="button" class="btn btn-outline-secondary acrescentar-lote">+ Acrescentar lote/virola</button></div>
+                    </div>
+                </div>
+            </div>
+            <label class="form-label mt-2">Justificativa</label><textarea name="justificativa" class="form-control mb-2" rows="2" placeholder="Obrigatória quando houver divergência"></textarea>
+            <button name="acao" value="entregar" class="btn btn-success">Confirmar entrega</button>
+            <script>
+                document.addEventListener('click', function (event) {
+                    if (!event.target.classList.contains('acrescentar-lote')) return;
+                    const linha = event.target.closest('.entrega-efetiva-linha');
+                    const nova = linha.cloneNode(true);
+                    nova.querySelector('.small.fw-semibold').textContent = 'Registro efetivo adicional';
+                    nova.querySelector('.quantidade-efetiva').value = 0;
+                    nova.querySelector('.lote-efetivo').selectedIndex = 0;
+                    nova.querySelector('.acrescentar-lote').remove();
+                    linha.parentElement.appendChild(nova);
+                });
+            </script>
+        </th:block>
         <button th:if="${movimentacao.status.name()=='SOLICITADA'||movimentacao.status.name()=='AUTORIZADA'||movimentacao.status.name()=='SEPARADA'}" name="acao" value="cancelar" class="btn btn-outline-danger">Cancelar</button></form></div></div>
 </th:block>
